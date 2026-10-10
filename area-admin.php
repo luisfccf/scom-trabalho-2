@@ -4,12 +4,18 @@ declare(strict_types=1);
 
 session_start();
 
+/*
+ * Verifica se o usuário está autenticado.
+ */
 if (empty($_SESSION['usuario_id'])) {
     http_response_code(401);
     header('Location: login.php');
     exit;
 }
 
+/*
+ * Verifica se o usuário possui perfil de administrador.
+ */
 if (
     !isset($_SESSION['perfil_acesso']) ||
     $_SESSION['perfil_acesso'] !== 'admin'
@@ -44,11 +50,20 @@ if (
     exit;
 }
 
+/*
+ * Conexão com o banco.
+ */
 require __DIR__ . '/config/conexao.php';
 
 $tituloPagina = 'Área Administrativa - Mundo Pokémon';
 
+$treinadores = [];
+$erroConsulta = '';
+
 try {
+    /*
+     * Consulta todos os treinadores cadastrados.
+     */
     $comando = $pdo->prepare(
         'SELECT
             id,
@@ -64,11 +79,15 @@ try {
 
     $comando->execute();
 
-    $treinadores = $comando->fetchAll(PDO::FETCH_ASSOC);
+    $treinadores = $comando->fetchAll(
+        PDO::FETCH_ASSOC
+    );
 
 } catch (PDOException $erro) {
     http_response_code(500);
-    $treinadores = [];
+
+    $erroConsulta =
+        'Não foi possível carregar os treinadores.';
 }
 
 require __DIR__ . '/includes/cabecalho.php';
@@ -76,7 +95,9 @@ require __DIR__ . '/includes/cabecalho.php';
 ?>
 
 <main id="conteudo-principal">
+
     <section>
+
         <h2>Área Administrativa</h2>
 
         <p>
@@ -87,7 +108,9 @@ require __DIR__ . '/includes/cabecalho.php';
             <a href="area-treinador.php">
                 Minha área
             </a>
+
             |
+
             <a href="logout.php">
                 Sair
             </a>
@@ -95,14 +118,31 @@ require __DIR__ . '/includes/cabecalho.php';
 
         <h3>Treinadores cadastrados</h3>
 
-        <?php if (empty($treinadores)): ?>
+        <?php if ($erroConsulta !== ''): ?>
 
-            <p>Nenhum treinador encontrado.</p>
+            <div
+                role="alert"
+                aria-live="assertive"
+            >
+                <?= htmlspecialchars(
+                    $erroConsulta,
+                    ENT_QUOTES,
+                    'UTF-8'
+                ) ?>
+            </div>
+
+        <?php elseif (empty($treinadores)): ?>
+
+            <p>
+                Nenhum treinador encontrado.
+            </p>
 
         <?php else: ?>
 
             <div class="tabela-responsiva">
+
                 <table>
+
                     <thead>
                         <tr>
                             <th>ID</th>
@@ -112,12 +152,16 @@ require __DIR__ . '/includes/cabecalho.php';
                             <th>Nível</th>
                             <th>Região</th>
                             <th>Cadastro</th>
+                            <th>Ações</th>
                         </tr>
                     </thead>
 
                     <tbody>
+
                         <?php foreach ($treinadores as $treinador): ?>
+
                             <tr>
+
                                 <td>
                                     <?= (int) $treinador['id'] ?>
                                 </td>
@@ -165,14 +209,29 @@ require __DIR__ . '/includes/cabecalho.php';
                                         'UTF-8'
                                     ) ?>
                                 </td>
+
+                                <td>
+                                    <a
+                                        href="editar-treinador.php?id=<?= (int) $treinador['id'] ?>"
+                                    >
+                                        Editar
+                                    </a>
+                                </td>
+
                             </tr>
+
                         <?php endforeach; ?>
+
                     </tbody>
+
                 </table>
+
             </div>
 
         <?php endif; ?>
+
     </section>
+
 </main>
 
 <?php
