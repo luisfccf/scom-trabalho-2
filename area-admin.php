@@ -14,7 +14,7 @@ if (empty($_SESSION['usuario_id'])) {
 }
 
 /*
- * Verifica se o usuário possui perfil de administrador.
+ * Verifica se o usuário é administrador.
  */
 if (
     !isset($_SESSION['perfil_acesso']) ||
@@ -51,6 +51,15 @@ if (
 }
 
 /*
+ * Gera token CSRF para as ações administrativas.
+ */
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(
+        random_bytes(32)
+    );
+}
+
+/*
  * Conexão com o banco.
  */
 require __DIR__ . '/config/conexao.php';
@@ -62,7 +71,7 @@ $erroConsulta = '';
 
 try {
     /*
-     * Consulta todos os treinadores cadastrados.
+     * Lista os treinadores cadastrados.
      */
     $comando = $pdo->prepare(
         'SELECT
@@ -211,11 +220,57 @@ require __DIR__ . '/includes/cabecalho.php';
                                 </td>
 
                                 <td>
+
                                     <a
                                         href="editar-treinador.php?id=<?= (int) $treinador['id'] ?>"
                                     >
                                         Editar
                                     </a>
+
+                                    <?php if (
+                                        (int) $treinador['id'] !==
+                                        (int) $_SESSION['usuario_id']
+                                    ): ?>
+
+                                        <form
+                                            action="processar-exclusao.php"
+                                            method="post"
+                                            style="display: inline;"
+                                        >
+
+                                            <input
+                                                type="hidden"
+                                                name="csrf_token"
+                                                value="<?= htmlspecialchars(
+                                                    $_SESSION['csrf_token'],
+                                                    ENT_QUOTES,
+                                                    'UTF-8'
+                                                ) ?>"
+                                            >
+
+                                            <input
+                                                type="hidden"
+                                                name="id"
+                                                value="<?= (int) $treinador['id'] ?>"
+                                            >
+
+                                            <button
+                                                type="submit"
+                                                onclick="return confirm('Tem certeza que deseja excluir este treinador?');"
+                                            >
+                                                Excluir
+                                            </button>
+
+                                        </form>
+
+                                    <?php else: ?>
+
+                                        <span>
+                                            Usuário atual
+                                        </span>
+
+                                    <?php endif; ?>
+
                                 </td>
 
                             </tr>
