@@ -1,0 +1,64 @@
+<?php
+
+declare(strict_types=1);
+
+session_start();
+
+if (empty($_SESSION['usuario_id'])) {
+    http_response_code(401);
+    header('Location: login.php');
+    exit;
+}
+
+$tituloPagina = 'Área do Treinador - Mundo Pokémon';
+
+require __DIR__ . '/includes/cabecalho.php';
+
+$nomeUsuario = $_SESSION['usuario_nome'] ?? 'Treinador';
+$perfilAcesso = $_SESSION['perfil_acesso'] ?? 'treinador';
+
+?>
+
+<main id="conteudo-principal">
+    <section>
+        <h2>Área do Treinador</h2>
+
+        <p>
+            Bem-vindo,
+            <strong>
+                <?= htmlspecialchars(
+                    $nomeUsuario,
+                    ENT_QUOTES,
+                    'UTF-8'
+                ) ?>
+            </strong>.
+        </p>
+
+        <p>
+            Perfil de acesso:
+            <strong>
+                <?= htmlspecialchars(
+                    $perfilAcesso,
+                    ENT_QUOTES,
+                    'UTF-8'
+                ) ?>
+            </strong>
+        </p>
+
+        <p>
+            Você está autenticado no sistema.
+        </p>
+
+        <p>
+            <a href="logout.php">
+                Sair da conta
+            </a>
+        </p>
+    </section>
+</main>
+
+<?php
+
+require __DIR__ . '/includes/rodape.php';
+
+?>
