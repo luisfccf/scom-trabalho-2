@@ -5,6 +5,7 @@ declare(strict_types=1);
 session_start();
 
 require __DIR__ . '/config/conexao.php';
+require __DIR__ . '/includes/logger.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -25,6 +26,11 @@ if (
 ) {
     http_response_code(403);
 
+    registrarLog(
+        'FALHA_AUTENTICACAO',
+        'Tentativa de login com token CSRF inválido.'
+    );
+
     $_SESSION['erro_login'] =
         'A sessão do formulário expirou. Tente novamente.';
 
@@ -33,7 +39,7 @@ if (
 }
 
 /*
- * Validação do e-mail.
+ * Validação do e-mail e senha.
  */
 $email = filter_input(
     INPUT_POST,
@@ -45,11 +51,17 @@ $senha = $_POST['senha'] ?? '';
 
 if (
     $email === false ||
+    $email === null ||
     !is_string($senha) ||
     strlen($senha) < 8 ||
     strlen($senha) > 72
 ) {
     http_response_code(422);
+
+    registrarLog(
+        'FALHA_AUTENTICACAO',
+        'Tentativa de login com dados inválidos.'
+    );
 
     $_SESSION['erro_login'] =
         'E-mail ou senha inválidos.';
@@ -60,7 +72,7 @@ if (
 
 try {
     /*
-     * Busca segura utilizando prepared statement.
+     * Busca o treinador utilizando prepared statement.
      */
     $comando = $pdo->prepare(
         'SELECT
@@ -81,8 +93,8 @@ try {
     $treinador = $comando->fetch(PDO::FETCH_ASSOC);
 
     /*
-     * Não informa se o problema foi e-mail ou senha.
-     * Isso evita revelar usuários cadastrados.
+     * A mensagem é genérica para não revelar
+     * se o e-mail existe no sistema.
      */
     if (
         !$treinador ||
@@ -93,6 +105,14 @@ try {
     ) {
         http_response_code(401);
 
+        registrarLog(
+            'FALHA_AUTENTICACAO',
+            'Falha de autenticação.',
+            [
+                'email' => $email
+            ]
+        );
+
         $_SESSION['erro_login'] =
             'E-mail ou senha inválidos.';
 
@@ -101,7 +121,8 @@ try {
     }
 
     /*
-     * Evita reutilização do ID de sessão anterior.
+     * Proteção contra reutilização do ID
+     * anterior da sessão.
      */
     session_regenerate_id(true);
 
@@ -118,10 +139,19 @@ try {
         $treinador['perfil_acesso'];
 
     /*
-     * Renova o token CSRF após o login.
+     * Novo token CSRF após o login.
      */
     $_SESSION['csrf_token'] =
         bin2hex(random_bytes(32));
+
+    registrarLog(
+        'LOGIN_SUCESSO',
+        'Login realizado com sucesso.',
+        [
+            'usuario_id' => (int) $treinador['id'],
+            'perfil' => $treinador['perfil_acesso']
+        ]
+    );
 
     header('Location: area-treinador.php');
     exit;
@@ -129,9 +159,14 @@ try {
 } catch (PDOException $erro) {
     http_response_code(500);
 
-    /*
-     * Não mostramos detalhes do banco para o usuário.
-     */
+    registrarLog(
+        'ERRO_INTERNO',
+        'Erro interno durante autenticação.',
+        [
+            'codigo' => $erro->getCode()
+        ]
+    );
+
     $_SESSION['erro_login'] =
         'Não foi possível realizar o login no momento.';
 

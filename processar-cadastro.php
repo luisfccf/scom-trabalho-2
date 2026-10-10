@@ -1,6 +1,9 @@
 <?php
 
+declare(strict_types=1);
+
 require __DIR__ . '/config/conexao.php';
+require __DIR__ . '/includes/logger.php';
 
 /**
  * Escapa textos antes de exibi-los no HTML,
@@ -82,7 +85,7 @@ $regioesPermitidas = [
 ];
 
 /*
- * Array utilizado para armazenar e manipular
+ * Array utilizado para armazenar
  * as mensagens de validação.
  */
 $erros = [];
@@ -105,6 +108,7 @@ if (
 
 if (
     $nivel === false ||
+    $nivel === null ||
     $nivel < 1 ||
     $nivel > 100
 ) {
@@ -237,6 +241,7 @@ if (!$termosAceitos) {
 $cadastroRealizado = false;
 
 if ($erros === []) {
+
     /*
      * A senha nunca é armazenada diretamente.
      * Somente o hash seguro é salvo no banco.
@@ -247,6 +252,7 @@ if ($erros === []) {
     );
 
     try {
+
         /*
          * Consulta parametrizada para impedir
          * ataques de SQL Injection.
@@ -315,22 +321,66 @@ if ($erros === []) {
             'termos_aceitos' => 1
         ]);
 
+        /*
+         * Obtém o ID criado pelo banco.
+         */
+        $treinadorId = (int) $pdo->lastInsertId();
+
+        /*
+         * Log obrigatório:
+         * criação de entidade.
+         *
+         * Não registramos senha ou hash.
+         */
+        registrarLog(
+            'CRIACAO_ENTIDADE',
+            'Treinador cadastrado com sucesso.',
+            [
+                'treinador_id' => $treinadorId
+            ]
+        );
+
         $cadastroRealizado = true;
 
         http_response_code(201);
+
     } catch (PDOException $erroBanco) {
+
+        /*
+         * Violação de constraint,
+         * como e-mail duplicado.
+         */
         if ($erroBanco->getCode() === '23000') {
+
             $erros[] =
                 'O e-mail informado já está cadastrado.';
 
             http_response_code(409);
+
         } else {
+
+            /*
+             * Log obrigatório:
+             * erro interno.
+             *
+             * Não exibimos detalhes técnicos
+             * ao usuário.
+             */
+            registrarLog(
+                'ERRO_INTERNO',
+                'Erro interno durante cadastro de treinador.',
+                [
+                    'codigo' => $erroBanco->getCode()
+                ]
+            );
+
             $erros[] =
                 'Ocorreu um erro ao salvar o cadastro.';
 
             http_response_code(500);
         }
     }
+
 } else {
     http_response_code(422);
 }
@@ -343,7 +393,7 @@ $tituloPagina = $cadastroRealizado
     : 'Erro no cadastro';
 
 /*
- * Inclui o HTML do cabeçalho a partir de outro script.
+ * Inclui o HTML do cabeçalho.
  */
 require __DIR__ . '/includes/cabecalho.php';
 
@@ -360,7 +410,9 @@ require __DIR__ . '/includes/cabecalho.php';
         aria-labelledby="titulo-resultado"
     >
         <div class="resultado-conteudo">
+
             <?php if (!$cadastroRealizado): ?>
+
                 <span
                     class="resultado-etiqueta etiqueta-erro"
                 >
@@ -376,22 +428,28 @@ require __DIR__ . '/includes/cabecalho.php';
                 </p>
 
                 <ul class="lista-erros">
+
                     <?php foreach (
                         $erros as $mensagemErro
                     ): ?>
+
                         <li>
                             <?= escapar($mensagemErro) ?>
                         </li>
+
                     <?php endforeach; ?>
+
                 </ul>
 
                 <a
-                    href="index.html#contato"
+                    href="index.html#cadastro"
                     class="botao-resultado"
                 >
                     Corrigir formulário
                 </a>
+
             <?php else: ?>
+
                 <span
                     class="resultado-etiqueta etiqueta-sucesso"
                 >
@@ -408,6 +466,7 @@ require __DIR__ . '/includes/cabecalho.php';
                 </p>
 
                 <dl class="grade-dados-treinador">
+
                     <div
                         class="dado-treinador dado-nome"
                     >
@@ -418,7 +477,9 @@ require __DIR__ . '/includes/cabecalho.php';
                             Nome
                         </dt>
 
-                        <dd><?= escapar($nome) ?></dd>
+                        <dd>
+                            <?= escapar($nome) ?>
+                        </dd>
                     </div>
 
                     <div
@@ -507,18 +568,26 @@ require __DIR__ . '/includes/cabecalho.php';
                                 : 'Não' ?>
                         </dd>
                     </div>
+
                 </dl>
 
                 <div class="motivacao-resultado">
+
                     <h3>
-                        <span aria-hidden="true">💬</span>
+                        <span aria-hidden="true">
+                            💬
+                        </span>
                         Motivação da jornada
                     </h3>
 
-                    <p><?= escapar($motivacao) ?></p>
+                    <p>
+                        <?= escapar($motivacao) ?>
+                    </p>
+
                 </div>
 
                 <div class="acoes-resultado">
+
                     <a
                         href="index.html"
                         class="botao-resultado"
@@ -527,16 +596,20 @@ require __DIR__ . '/includes/cabecalho.php';
                     </a>
 
                     <a
-                        href="index.html#contato"
+                        href="index.html#cadastro"
                         class="botao-resultado-secundario"
                     >
                         Novo cadastro
                     </a>
+
                 </div>
+
             <?php endif; ?>
+
         </div>
 
         <figure class="resultado-ilustracao">
+
             <img
                 src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png"
                 alt="Pikachu representando a conclusão do cadastro"
@@ -547,14 +620,16 @@ require __DIR__ . '/includes/cabecalho.php';
             <figcaption>
                 Sua jornada Pokémon começa agora!
             </figcaption>
+
         </figure>
+
     </section>
 </main>
 
 <?php
 
 /*
- * Inclui o HTML do rodapé a partir de outro script.
+ * Inclui o HTML do rodapé.
  */
 require __DIR__ . '/includes/rodape.php';
 
