@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+date_default_timezone_set('America/Sao_Paulo');
+
 function registrarLog(
     string $evento,
     string $mensagem,
@@ -10,7 +12,11 @@ function registrarLog(
     $diretorioLogs = __DIR__ . '/../logs';
 
     if (!is_dir($diretorioLogs)) {
-        mkdir($diretorioLogs, 0755, true);
+        mkdir(
+            $diretorioLogs,
+            0755,
+            true
+        );
     }
 
     $arquivoLog = $diretorioLogs . '/app.log';
