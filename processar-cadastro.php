@@ -2,75 +2,211 @@
 
 declare(strict_types=1);
 
-require __DIR__ . '/config/conexao.php';
-require __DIR__ . '/includes/logger.php';
+require_once __DIR__ . '/config/conexao.php';
+require_once __DIR__ . '/includes/logger.php';
+require_once __DIR__ . '/includes/validacoes.php';
 
-/**
- * Escapa textos antes de exibi-los no HTML,
- * protegendo a página contra ataques XSS.
- */
 function escapar(string $valor): string
 {
     return htmlspecialchars(
         $valor,
-        ENT_QUOTES,
+        ENT_QUOTES | ENT_SUBSTITUTE,
         'UTF-8'
     );
 }
 
-/*
- * Impede o acesso direto à página sem o envio
- * do formulário pelo método POST.
- */
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     exit('Método não permitido.');
 }
 
 /*
- * Popula as variáveis com os valores enviados
- * pelo formulário da página principal.
- */
-$nome = trim($_POST['nome'] ?? '');
-$senha = $_POST['senha'] ?? '';
+|--------------------------------------------------------------------------
+| Dados recebidos do formulário
+|--------------------------------------------------------------------------
+*/
 
-$nivel = filter_input(
+$nome = trim(
+    (string) ($_POST['nome'] ?? '')
+);
+
+$senha = (string) ($_POST['senha'] ?? '');
+
+$nivelRecebido = filter_input(
     INPUT_POST,
     'nivel',
     FILTER_VALIDATE_INT
 );
 
-$email = trim($_POST['email'] ?? '');
-$perfilUrl = trim($_POST['perfil'] ?? '');
-$motivacao = trim($_POST['mensagem'] ?? '');
-
-$novidades = isset($_POST['novidades']);
-
-$experiencia = trim(
-    $_POST['experiencia'] ?? ''
+$email = trim(
+    (string) ($_POST['email'] ?? '')
 );
 
-$regiao = trim($_POST['regiao'] ?? '');
-
-$dataNascimento = trim(
-    $_POST['data-nascimento'] ?? ''
-);
-
-$horario = trim($_POST['horario'] ?? '');
-$cor = trim($_POST['cor'] ?? '');
-
-$termosAceitos = isset(
-    $_POST['termos']
+$perfilUrl = trim(
+    (string) ($_POST['perfil_url'] ?? '')
 );
 
 /*
- * Arrays com as opções aceitas pelo sistema.
- */
-$experienciasPermitidas = [
-    'iniciante',
-    'intermediario',
-    'avancado'
-];
+| No HTML este campo se chama "mensagem"
+*/
+$motivacao = trim(
+    (string) ($_POST['mensagem'] ?? '')
+);
+
+$novidades = isset($_POST['novidades']) ? 1 : 0;
+
+$experiencia = strtolower(
+    trim((string) ($_POST['experiencia'] ?? ''))
+);
+
+$regiao = strtolower(
+    trim((string) ($_POST['regiao'] ?? ''))
+);
+
+/*
+| No HTML este campo se chama "data-nascimento"
+*/
+$dataNascimento = trim(
+    (string) ($_POST['data-nascimento'] ?? '')
+);
+
+/*
+| No HTML este campo se chama "horario"
+*/
+$horarioPreferido = trim(
+    (string) ($_POST['horario'] ?? '')
+);
+
+$corUniforme = trim(
+    (string) ($_POST['cor_uniforme'] ?? '#c51d1d')
+);
+
+/*
+| No HTML este checkbox se chama "termos"
+*/
+$termosAceitos = isset($_POST['termos']) ? 1 : 0;
+
+/*
+|--------------------------------------------------------------------------
+| Validações
+|--------------------------------------------------------------------------
+*/
+
+$erros = [];
+
+/*
+|--------------------------------------------------------------------------
+| Nome
+|--------------------------------------------------------------------------
+*/
+
+if (!validarNome($nome)) {
+    $erros[] = 'O nome deve possuir entre 2 e 80 caracteres.';
+}
+
+/*
+|--------------------------------------------------------------------------
+| Senha
+|--------------------------------------------------------------------------
+*/
+
+$tamanhoSenha = strlen($senha);
+
+if ($tamanhoSenha < 8 || $tamanhoSenha > 72) {
+    $erros[] = 'A senha deve possuir entre 8 e 72 caracteres.';
+}
+
+/*
+|--------------------------------------------------------------------------
+| Nível
+|--------------------------------------------------------------------------
+*/
+
+if (
+    $nivelRecebido === false ||
+    $nivelRecebido === null ||
+    !validarNivel((int) $nivelRecebido)
+) {
+    $erros[] = 'O nível deve estar entre 1 e 100.';
+}
+
+$nivel = (int) $nivelRecebido;
+
+/*
+|--------------------------------------------------------------------------
+| E-mail
+|--------------------------------------------------------------------------
+*/
+
+if ($email !== '' && !validarEmail($email)) {
+    $erros[] = 'O e-mail informado é inválido.';
+}
+
+/*
+|--------------------------------------------------------------------------
+| Novidades
+|--------------------------------------------------------------------------
+*/
+
+if ($novidades === 1 && $email === '') {
+    $erros[] = 'Informe um e-mail para receber novidades.';
+}
+
+/*
+|--------------------------------------------------------------------------
+| URL do perfil
+|--------------------------------------------------------------------------
+*/
+
+if ($perfilUrl !== '') {
+    $urlValida = filter_var(
+        $perfilUrl,
+        FILTER_VALIDATE_URL
+    );
+
+    $esquema = parse_url(
+        $perfilUrl,
+        PHP_URL_SCHEME
+    );
+
+    if (
+        $urlValida === false ||
+        strtolower((string) $esquema) !== 'https'
+    ) {
+        $erros[] = 'A URL do perfil deve ser válida e utilizar HTTPS.';
+    }
+}
+
+/*
+|--------------------------------------------------------------------------
+| Motivação
+|--------------------------------------------------------------------------
+*/
+
+$tamanhoMotivacao = mb_strlen($motivacao);
+
+if (
+    $tamanhoMotivacao < 1 ||
+    $tamanhoMotivacao > 500
+) {
+    $erros[] = 'A motivação deve possuir entre 1 e 500 caracteres.';
+}
+
+/*
+|--------------------------------------------------------------------------
+| Experiência
+|--------------------------------------------------------------------------
+*/
+
+if (!validarExperiencia($experiencia)) {
+    $erros[] = 'Nível de experiência inválido.';
+}
+
+/*
+|--------------------------------------------------------------------------
+| Região
+|--------------------------------------------------------------------------
+*/
 
 $regioesPermitidas = [
     'kanto',
@@ -84,553 +220,313 @@ $regioesPermitidas = [
     'paldea'
 ];
 
+if (!in_array($regiao, $regioesPermitidas, true)) {
+    $erros[] = 'Região inválida.';
+}
+
 /*
- * Array utilizado para armazenar
- * as mensagens de validação.
- */
-$erros = [];
+|--------------------------------------------------------------------------
+| Data de nascimento
+|--------------------------------------------------------------------------
+*/
+
+$dataNascimentoValida = false;
 
 if (
-    mb_strlen($nome) < 3 ||
-    mb_strlen($nome) > 80
+    preg_match(
+        '/^\d{4}-\d{2}-\d{2}$/',
+        $dataNascimento
+    )
 ) {
-    $erros[] =
-        'O nome deve possuir entre 3 e 80 caracteres.';
-}
+    $data = DateTimeImmutable::createFromFormat(
+        '!Y-m-d',
+        $dataNascimento
+    );
 
-if (
-    mb_strlen($senha) < 8 ||
-    mb_strlen($senha) > 30
-) {
-    $erros[] =
-        'A senha deve possuir entre 8 e 30 caracteres.';
-}
-
-if (
-    $nivel === false ||
-    $nivel === null ||
-    $nivel < 1 ||
-    $nivel > 100
-) {
-    $erros[] =
-        'O nível deve estar entre 1 e 100.';
-}
-
-if ($email !== '') {
     if (
-        !filter_var(
-            $email,
-            FILTER_VALIDATE_EMAIL
-        ) ||
-        mb_strlen($email) > 150
+        $data !== false &&
+        $data->format('Y-m-d') === $dataNascimento
     ) {
-        $erros[] =
-            'Informe um e-mail válido.';
-    }
-}
+        $hoje = new DateTimeImmutable('today');
 
-if ($novidades && $email === '') {
-    $erros[] =
-        'O e-mail é obrigatório para receber novidades.';
-}
+        if ($data <= $hoje) {
+            $idade = $data->diff($hoje)->y;
 
-if ($perfilUrl !== '') {
-    $urlValida = filter_var(
-        $perfilUrl,
-        FILTER_VALIDATE_URL
-    );
-
-    $usaHttps = str_starts_with(
-        strtolower($perfilUrl),
-        'https://'
-    );
-
-    if (!$urlValida || !$usaHttps) {
-        $erros[] =
-            'O link deve ser uma URL válida iniciada por https://.';
-    }
-}
-
-if (
-    mb_strlen($motivacao) < 10 ||
-    mb_strlen($motivacao) > 500
-) {
-    $erros[] =
-        'A motivação deve possuir entre 10 e 500 caracteres.';
-}
-
-if (
-    !in_array(
-        $experiencia,
-        $experienciasPermitidas,
-        true
-    )
-) {
-    $erros[] =
-        'Selecione uma experiência válida.';
-}
-
-if (
-    !in_array(
-        $regiao,
-        $regioesPermitidas,
-        true
-    )
-) {
-    $erros[] =
-        'Selecione uma região válida.';
-}
-
-/*
- * Validação da data de nascimento e da idade.
- */
-$dataObjeto = DateTimeImmutable::createFromFormat(
-    '!Y-m-d',
-    $dataNascimento
-);
-
-$dataValida =
-    $dataObjeto !== false &&
-    $dataObjeto->format('Y-m-d') ===
-        $dataNascimento;
-
-if (!$dataValida) {
-    $erros[] =
-        'Informe uma data de nascimento válida.';
-} else {
-    $hoje = new DateTimeImmutable('today');
-
-    if ($dataObjeto > $hoje) {
-        $erros[] =
-            'A data de nascimento não pode estar no futuro.';
-    } else {
-        $idade = $dataObjeto->diff($hoje)->y;
-
-        if ($idade < 10 || $idade > 120) {
-            $erros[] =
-                'O treinador deve ter entre 10 e 120 anos.';
+            if ($idade >= 10 && $idade <= 120) {
+                $dataNascimentoValida = true;
+            }
         }
     }
 }
+
+if (!$dataNascimentoValida) {
+    $erros[] =
+        'A data de nascimento deve corresponder a uma idade entre 10 e 120 anos.';
+}
+
+/*
+|--------------------------------------------------------------------------
+| Horário
+|--------------------------------------------------------------------------
+*/
 
 if (
     !preg_match(
         '/^(?:[01]\d|2[0-3]):[0-5]\d$/',
-        $horario
+        $horarioPreferido
     )
 ) {
-    $erros[] =
-        'Informe um horário válido.';
+    $erros[] = 'Horário preferido inválido.';
 }
+
+/*
+|--------------------------------------------------------------------------
+| Cor
+|--------------------------------------------------------------------------
+*/
 
 if (
     !preg_match(
-        '/^#[0-9a-fA-F]{6}$/',
-        $cor
+        '/^#[0-9A-Fa-f]{6}$/',
+        $corUniforme
     )
 ) {
-    $erros[] =
-        'Informe uma cor válida.';
+    $erros[] = 'Cor do uniforme inválida.';
 }
 
-if (!$termosAceitos) {
+/*
+|--------------------------------------------------------------------------
+| Termos
+|--------------------------------------------------------------------------
+*/
+
+if ($termosAceitos !== 1) {
     $erros[] =
-        'É necessário confirmar as informações.';
+        'É necessário aceitar os termos para realizar o cadastro.';
 }
 
-$cadastroRealizado = false;
+/*
+|--------------------------------------------------------------------------
+| Erros de validação
+|--------------------------------------------------------------------------
+*/
 
-if ($erros === []) {
+if ($erros !== []) {
+    http_response_code(422);
 
-    /*
-     * A senha nunca é armazenada diretamente.
-     * Somente o hash seguro é salvo no banco.
-     */
-    $senhaHash = password_hash(
-        $senha,
-        PASSWORD_DEFAULT
+    require __DIR__ . '/includes/cabecalho.php';
+    ?>
+
+    <main>
+        <section>
+            <h1>Não foi possível realizar o cadastro</h1>
+
+            <ul>
+                <?php foreach ($erros as $erro): ?>
+                    <li><?= escapar($erro) ?></li>
+                <?php endforeach; ?>
+            </ul>
+
+            <p>
+                <a href="index.html#cadastro">
+                    Voltar ao cadastro
+                </a>
+            </p>
+        </section>
+    </main>
+
+    <?php
+
+    require __DIR__ . '/includes/rodape.php';
+    exit;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Hash da senha
+|--------------------------------------------------------------------------
+*/
+
+$senhaHash = password_hash(
+    $senha,
+    PASSWORD_DEFAULT
+);
+
+if ($senhaHash === false) {
+    registrarLog(
+        'ERRO_INTERNO',
+        'Falha ao gerar hash da senha durante cadastro.'
     );
 
-    try {
+    http_response_code(500);
 
-        /*
-         * Consulta parametrizada para impedir
-         * ataques de SQL Injection.
-         */
-        $comando = $pdo->prepare(
-            'INSERT INTO treinadores (
-                nome,
-                senha_hash,
-                nivel,
-                email,
-                perfil_url,
-                motivacao,
-                novidades,
-                experiencia,
-                regiao,
-                data_nascimento,
-                horario_preferido,
-                cor_uniforme,
-                termos_aceitos
-            ) VALUES (
-                :nome,
-                :senha_hash,
-                :nivel,
-                :email,
-                :perfil_url,
-                :motivacao,
-                :novidades,
-                :experiencia,
-                :regiao,
-                :data_nascimento,
-                :horario_preferido,
-                :cor_uniforme,
-                :termos_aceitos
-            )'
-        );
-
-        $comando->execute([
-            'nome' => $nome,
-            'senha_hash' => $senhaHash,
-            'nivel' => $nivel,
-
-            'email' => $email !== ''
-                ? $email
-                : null,
-
-            'perfil_url' => $perfilUrl !== ''
-                ? $perfilUrl
-                : null,
-
-            'motivacao' => $motivacao,
-
-            'novidades' => $novidades
-                ? 1
-                : 0,
-
-            'experiencia' => $experiencia,
-            'regiao' => $regiao,
-
-            'data_nascimento' =>
-                $dataNascimento,
-
-            'horario_preferido' =>
-                $horario,
-
-            'cor_uniforme' => $cor,
-            'termos_aceitos' => 1
-        ]);
-
-        /*
-         * Obtém o ID criado pelo banco.
-         */
-        $treinadorId = (int) $pdo->lastInsertId();
-
-        /*
-         * Log obrigatório:
-         * criação de entidade.
-         *
-         * Não registramos senha ou hash.
-         */
-        registrarLog(
-            'CRIACAO_ENTIDADE',
-            'Treinador cadastrado com sucesso.',
-            [
-                'treinador_id' => $treinadorId
-            ]
-        );
-
-        $cadastroRealizado = true;
-
-        http_response_code(201);
-
-    } catch (PDOException $erroBanco) {
-
-        /*
-         * Violação de constraint,
-         * como e-mail duplicado.
-         */
-        if ($erroBanco->getCode() === '23000') {
-
-            $erros[] =
-                'O e-mail informado já está cadastrado.';
-
-            http_response_code(409);
-
-        } else {
-
-            /*
-             * Log obrigatório:
-             * erro interno.
-             *
-             * Não exibimos detalhes técnicos
-             * ao usuário.
-             */
-            registrarLog(
-                'ERRO_INTERNO',
-                'Erro interno durante cadastro de treinador.',
-                [
-                    'codigo' => $erroBanco->getCode()
-                ]
-            );
-
-            $erros[] =
-                'Ocorreu um erro ao salvar o cadastro.';
-
-            http_response_code(500);
-        }
-    }
-
-} else {
-    http_response_code(422);
+    exit('Erro interno ao processar o cadastro.');
 }
 
 /*
- * Define o título usado pelo cabeçalho reutilizável.
- */
-$tituloPagina = $cadastroRealizado
-    ? 'Cadastro concluído'
-    : 'Erro no cadastro';
+|--------------------------------------------------------------------------
+| Cadastro no banco
+|--------------------------------------------------------------------------
+*/
 
-/*
- * Inclui o HTML do cabeçalho.
- */
-require __DIR__ . '/includes/cabecalho.php';
+try {
+    $sql = '
+        INSERT INTO treinadores (
+            nome,
+            senha_hash,
+            nivel,
+            email,
+            perfil_url,
+            motivacao,
+            novidades,
+            experiencia,
+            regiao,
+            data_nascimento,
+            horario_preferido,
+            cor_uniforme,
+            termos_aceitos
+        ) VALUES (
+            :nome,
+            :senha_hash,
+            :nivel,
+            :email,
+            :perfil_url,
+            :motivacao,
+            :novidades,
+            :experiencia,
+            :regiao,
+            :data_nascimento,
+            :horario_preferido,
+            :cor_uniforme,
+            :termos_aceitos
+        )
+    ';
 
-?>
+    $stmt = $pdo->prepare($sql);
 
-<main
-    id="conteudo-principal"
-    class="resultado-cadastro-container"
->
-    <section
-        class="cartao-resultado <?= $cadastroRealizado
-            ? 'resultado-sucesso'
-            : 'resultado-erro' ?>"
-        aria-labelledby="titulo-resultado"
-    >
-        <div class="resultado-conteudo">
+    $stmt->execute([
+        ':nome' => $nome,
+        ':senha_hash' => $senhaHash,
+        ':nivel' => $nivel,
+        ':email' => $email !== '' ? $email : null,
+        ':perfil_url' => $perfilUrl !== ''
+            ? $perfilUrl
+            : null,
+        ':motivacao' => $motivacao,
+        ':novidades' => $novidades,
+        ':experiencia' => $experiencia,
+        ':regiao' => $regiao,
+        ':data_nascimento' => $dataNascimento,
+        ':horario_preferido' => $horarioPreferido,
+        ':cor_uniforme' => $corUniforme,
+        ':termos_aceitos' => $termosAceitos
+    ]);
 
-            <?php if (!$cadastroRealizado): ?>
+    $treinadorId = (int) $pdo->lastInsertId();
 
-                <span
-                    class="resultado-etiqueta etiqueta-erro"
-                >
-                    CADASTRO NÃO REALIZADO
-                </span>
+    registrarLog(
+        'CRIACAO_ENTIDADE',
+        'Treinador cadastrado com sucesso.',
+        [
+            'treinador_id' => $treinadorId
+        ]
+    );
 
-                <h2 id="titulo-resultado">
-                    Não foi possível concluir seu cadastro
-                </h2>
+    http_response_code(201);
 
-                <p class="resultado-introducao">
-                    Confira os itens abaixo e tente novamente.
-                </p>
+    require __DIR__ . '/includes/cabecalho.php';
+    ?>
 
-                <ul class="lista-erros">
+    <main>
+        <section>
+            <h1>Cadastro realizado com sucesso!</h1>
 
-                    <?php foreach (
-                        $erros as $mensagemErro
-                    ): ?>
+            <p>
+                O treinador
+                <strong><?= escapar($nome) ?></strong>
+                foi cadastrado no sistema.
+            </p>
 
-                        <li>
-                            <?= escapar($mensagemErro) ?>
-                        </li>
-
-                    <?php endforeach; ?>
-
-                </ul>
-
-                <a
-                    href="index.html#cadastro"
-                    class="botao-resultado"
-                >
-                    Corrigir formulário
+            <p>
+                <a href="login.php">
+                    Ir para o login
                 </a>
+            </p>
 
-            <?php else: ?>
+            <p>
+                <a href="index.html">
+                    Retornar à página inicial
+                </a>
+            </p>
+        </section>
+    </main>
 
-                <span
-                    class="resultado-etiqueta etiqueta-sucesso"
-                >
-                    ✓ CADASTRO CONCLUÍDO
-                </span>
+    <?php
 
-                <h2 id="titulo-resultado">
-                    Bem-vindo à Liga Pokémon!
-                </h2>
+    require __DIR__ . '/includes/rodape.php';
 
-                <p class="resultado-introducao">
-                    Seu perfil de treinador foi criado
-                    com sucesso. Confira os dados:
+} catch (PDOException $erro) {
+
+    if ($erro->getCode() === '23000') {
+        http_response_code(409);
+
+        require __DIR__ . '/includes/cabecalho.php';
+        ?>
+
+        <main>
+            <section>
+                <h1>Cadastro não realizado</h1>
+
+                <p>
+                    O e-mail informado já está sendo utilizado
+                    ou algum dado viola uma regra do sistema.
                 </p>
 
-                <dl class="grade-dados-treinador">
-
-                    <div
-                        class="dado-treinador dado-nome"
-                    >
-                        <dt>
-                            <span aria-hidden="true">
-                                👤
-                            </span>
-                            Nome
-                        </dt>
-
-                        <dd>
-                            <?= escapar($nome) ?>
-                        </dd>
-                    </div>
-
-                    <div
-                        class="dado-treinador dado-nivel"
-                    >
-                        <dt>
-                            <span aria-hidden="true">
-                                ⭐
-                            </span>
-                            Nível
-                        </dt>
-
-                        <dd>
-                            <?= escapar(
-                                (string) $nivel
-                            ) ?>
-                        </dd>
-                    </div>
-
-                    <div
-                        class="dado-treinador dado-email"
-                    >
-                        <dt>
-                            <span aria-hidden="true">
-                                ✉️
-                            </span>
-                            E-mail
-                        </dt>
-
-                        <dd>
-                            <?= escapar(
-                                $email !== ''
-                                    ? $email
-                                    : 'Não informado'
-                            ) ?>
-                        </dd>
-                    </div>
-
-                    <div
-                        class="dado-treinador dado-experiencia"
-                    >
-                        <dt>
-                            <span aria-hidden="true">
-                                🏆
-                            </span>
-                            Experiência
-                        </dt>
-
-                        <dd>
-                            <?= escapar(
-                                ucfirst($experiencia)
-                            ) ?>
-                        </dd>
-                    </div>
-
-                    <div
-                        class="dado-treinador dado-regiao"
-                    >
-                        <dt>
-                            <span aria-hidden="true">
-                                🗺️
-                            </span>
-                            Região
-                        </dt>
-
-                        <dd>
-                            <?= escapar(
-                                ucfirst($regiao)
-                            ) ?>
-                        </dd>
-                    </div>
-
-                    <div
-                        class="dado-treinador dado-novidades"
-                    >
-                        <dt>
-                            <span aria-hidden="true">
-                                📢
-                            </span>
-                            Novidades
-                        </dt>
-
-                        <dd>
-                            <?= $novidades
-                                ? 'Sim'
-                                : 'Não' ?>
-                        </dd>
-                    </div>
-
-                </dl>
-
-                <div class="motivacao-resultado">
-
-                    <h3>
-                        <span aria-hidden="true">
-                            💬
-                        </span>
-                        Motivação da jornada
-                    </h3>
-
-                    <p>
-                        <?= escapar($motivacao) ?>
-                    </p>
-
-                </div>
-
-                <div class="acoes-resultado">
-
-                    <a
-                        href="index.html"
-                        class="botao-resultado"
-                    >
-                        Voltar à página inicial
+                <p>
+                    <a href="index.html#cadastro">
+                        Voltar ao cadastro
                     </a>
+                </p>
+            </section>
+        </main>
 
-                    <a
-                        href="index.html#cadastro"
-                        class="botao-resultado-secundario"
-                    >
-                        Novo cadastro
-                    </a>
+        <?php
 
-                </div>
+        require __DIR__ . '/includes/rodape.php';
+        exit;
+    }
 
-            <?php endif; ?>
+    registrarLog(
+        'ERRO_INTERNO',
+        'Erro interno durante cadastro de treinador.',
+        [
+            'codigo' => $erro->getCode()
+        ]
+    );
 
-        </div>
+    http_response_code(500);
 
-        <figure class="resultado-ilustracao">
+    require __DIR__ . '/includes/cabecalho.php';
+    ?>
 
-            <img
-                src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png"
-                alt="Pikachu representando a conclusão do cadastro"
-                width="280"
-                height="280"
-            >
+    <main>
+        <section>
+            <h1>Erro interno</h1>
 
-            <figcaption>
-                Sua jornada Pokémon começa agora!
-            </figcaption>
+            <p>
+                Não foi possível concluir o cadastro.
+                Tente novamente mais tarde.
+            </p>
 
-        </figure>
+            <p>
+                <a href="index.html#cadastro">
+                    Voltar
+                </a>
+            </p>
+        </section>
+    </main>
 
-    </section>
-</main>
+    <?php
 
-<?php
-
-/*
- * Inclui o HTML do rodapé.
- */
-require __DIR__ . '/includes/rodape.php';
-
-?>
+    require __DIR__ . '/includes/rodape.php';
+}
