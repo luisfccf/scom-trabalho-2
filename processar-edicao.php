@@ -4,11 +4,25 @@ declare(strict_types=1);
 
 session_start();
 
-if (empty($_SESSION['usuario_id'])) {
-    http_response_code(401);
+require_once __DIR__ . '/config/conexao.php';
+require_once __DIR__ . '/includes/validacoes.php';
+
+/*
+|--------------------------------------------------------------------------
+| Verifica autenticação
+|--------------------------------------------------------------------------
+*/
+
+if (!isset($_SESSION['usuario_id'])) {
     header('Location: login.php');
     exit;
 }
+
+/*
+|--------------------------------------------------------------------------
+| Verifica permissão de administrador
+|--------------------------------------------------------------------------
+*/
 
 if (
     !isset($_SESSION['perfil_acesso']) ||
@@ -18,81 +32,123 @@ if (
     exit('Acesso negado.');
 }
 
+/*
+|--------------------------------------------------------------------------
+| Apenas requisições POST
+|--------------------------------------------------------------------------
+*/
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
-    header('Location: area-admin.php');
-    exit;
+    exit('Método não permitido.');
 }
 
-require __DIR__ . '/config/conexao.php';
-
 /*
- * Validação CSRF.
- */
+|--------------------------------------------------------------------------
+| Validação CSRF
+|--------------------------------------------------------------------------
+*/
+
 $csrfRecebido = $_POST['csrf_token'] ?? '';
 
 if (
-    empty($_SESSION['csrf_token']) ||
+    !isset($_SESSION['csrf_token']) ||
     !is_string($csrfRecebido) ||
     !hash_equals($_SESSION['csrf_token'], $csrfRecebido)
 ) {
     http_response_code(403);
-    exit('Token CSRF inválido.');
+    exit('Token de segurança inválido.');
 }
 
 /*
- * Dados recebidos.
- */
+|--------------------------------------------------------------------------
+| Recebimento dos dados
+|--------------------------------------------------------------------------
+*/
+
 $id = filter_input(
     INPUT_POST,
     'id',
     FILTER_VALIDATE_INT
 );
 
-$nome = trim($_POST['nome'] ?? '');
-$email = trim($_POST['email'] ?? '');
+$nome = trim(
+    (string) ($_POST['nome'] ?? '')
+);
 
-$nivel = filter_input(
+$email = trim(
+    (string) ($_POST['email'] ?? '')
+);
+
+$nivelRecebido = filter_input(
     INPUT_POST,
     'nivel',
     FILTER_VALIDATE_INT
 );
 
-$regiao = $_POST['regiao'] ?? '';
-$perfilAcesso = $_POST['perfil_acesso'] ?? '';
+$regiao = strtolower(
+    trim((string) ($_POST['regiao'] ?? ''))
+);
+
+$perfilAcesso = trim(
+    (string) ($_POST['perfil_acesso'] ?? '')
+);
 
 /*
- * Validações.
- */
-if (!$id || $id <= 0) {
+|--------------------------------------------------------------------------
+| Validação do ID
+|--------------------------------------------------------------------------
+*/
+
+if ($id === false || $id === null || $id <= 0) {
     http_response_code(422);
-    exit('ID inválido.');
+    exit('ID de treinador inválido.');
 }
 
-if (
-    $nome === '' ||
-    mb_strlen($nome) > 80
-) {
+/*
+|--------------------------------------------------------------------------
+| Validação do nome
+|--------------------------------------------------------------------------
+*/
+
+if (!validarNome($nome)) {
     http_response_code(422);
-    exit('Nome inválido.');
+    exit('O nome deve possuir entre 2 e 80 caracteres.');
 }
 
-if (
-    !filter_var($email, FILTER_VALIDATE_EMAIL) ||
-    mb_strlen($email) > 150
-) {
+/*
+|--------------------------------------------------------------------------
+| Validação do e-mail
+|--------------------------------------------------------------------------
+*/
+
+if (!validarEmail($email)) {
     http_response_code(422);
     exit('E-mail inválido.');
 }
 
+/*
+|--------------------------------------------------------------------------
+| Validação do nível
+|--------------------------------------------------------------------------
+*/
+
 if (
-    !$nivel ||
-    $nivel < 1 ||
-    $nivel > 100
+    $nivelRecebido === false ||
+    $nivelRecebido === null ||
+    !validarNivel($nivelRecebido)
 ) {
     http_response_code(422);
-    exit('Nível inválido.');
+    exit('O nível deve estar entre 1 e 100.');
 }
+
+$nivel = (int) $nivelRecebido;
+
+/*
+|--------------------------------------------------------------------------
+| Validação da região
+|--------------------------------------------------------------------------
+*/
 
 $regioesPermitidas = [
     'kanto',
@@ -111,49 +167,89 @@ if (!in_array($regiao, $regioesPermitidas, true)) {
     exit('Região inválida.');
 }
 
-$perfisPermitidos = [
-    'treinador',
-    'admin'
-];
+/*
+|--------------------------------------------------------------------------
+| Validação do perfil
+|--------------------------------------------------------------------------
+*/
 
-if (!in_array(
-    $perfilAcesso,
-    $perfisPermitidos,
-    true
-)) {
+if (!validarPerfilAcesso($perfilAcesso)) {
     http_response_code(422);
     exit('Perfil de acesso inválido.');
 }
 
+/*
+|--------------------------------------------------------------------------
+| Atualização no banco de dados
+|--------------------------------------------------------------------------
+*/
+
 try {
     /*
-     * Atualização segura com prepared statement.
-     */
-    $comando = $pdo->prepare(
-        'UPDATE treinadores
+    |--------------------------------------------------------------------------
+    | Verifica se o treinador existe
+    |--------------------------------------------------------------------------
+    */
+
+    $consulta = $pdo->prepare(
+        'SELECT id
+         FROM treinadores
+         WHERE id = :id
+         LIMIT 1'
+    );
+
+    $consulta->execute([
+        ':id' => $id
+    ]);
+
+    if (!$consulta->fetch()) {
+        http_response_code(404);
+        exit('Treinador não encontrado.');
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | UPDATE parametrizado
+    |--------------------------------------------------------------------------
+    */
+
+    $sql = '
+        UPDATE treinadores
         SET
             nome = :nome,
             email = :email,
             nivel = :nivel,
             regiao = :regiao,
             perfil_acesso = :perfil_acesso
-        WHERE id = :id'
-    );
+        WHERE id = :id
+    ';
 
-    $comando->execute([
-        'nome' => $nome,
-        'email' => $email,
-        'nivel' => $nivel,
-        'regiao' => $regiao,
-        'perfil_acesso' => $perfilAcesso,
-        'id' => $id
+    $stmt = $pdo->prepare($sql);
+
+    $stmt->execute([
+        ':nome' => $nome,
+        ':email' => $email,
+        ':nivel' => $nivel,
+        ':regiao' => $regiao,
+        ':perfil_acesso' => $perfilAcesso,
+        ':id' => $id
     ]);
 
     /*
-     * Renova o token após a operação.
-     */
-    $_SESSION['csrf_token'] =
-        bin2hex(random_bytes(32));
+    |--------------------------------------------------------------------------
+    | Renova token CSRF
+    |--------------------------------------------------------------------------
+    */
+
+    $_SESSION['csrf_token'] = bin2hex(
+        random_bytes(32)
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Retorna para área administrativa
+    |--------------------------------------------------------------------------
+    */
 
     header('Location: area-admin.php');
     exit;
@@ -161,14 +257,22 @@ try {
 } catch (PDOException $erro) {
 
     /*
-     * Código 23000 normalmente indica
-     * violação de constraint, como e-mail duplicado.
-     */
+    |--------------------------------------------------------------------------
+    | E-mail duplicado / violação de UNIQUE
+    |--------------------------------------------------------------------------
+    */
+
     if ($erro->getCode() === '23000') {
         http_response_code(409);
-        exit('Já existe um treinador com esse e-mail.');
+        exit('Este e-mail já está sendo utilizado.');
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Erro interno
+    |--------------------------------------------------------------------------
+    */
+
     http_response_code(500);
-    exit('Não foi possível atualizar o treinador.');
+    exit('Erro interno ao atualizar o treinador.');
 }
