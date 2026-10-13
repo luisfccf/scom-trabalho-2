@@ -173,7 +173,8 @@ if ($perfilUrl !== '') {
         $urlValida === false ||
         strtolower((string) $esquema) !== 'https'
     ) {
-        $erros[] = 'A URL do perfil deve ser válida e utilizar HTTPS.';
+        $erros[] =
+            'A URL do perfil deve ser válida e utilizar HTTPS.';
     }
 }
 
@@ -189,7 +190,8 @@ if (
     $tamanhoMotivacao < 1 ||
     $tamanhoMotivacao > 500
 ) {
-    $erros[] = 'A motivação deve possuir entre 1 e 500 caracteres.';
+    $erros[] =
+        'A motivação deve possuir entre 1 e 500 caracteres.';
 }
 
 /*
@@ -317,21 +319,44 @@ if ($erros !== []) {
     require __DIR__ . '/includes/cabecalho.php';
     ?>
 
-    <main>
-        <section>
-            <h1>Não foi possível realizar o cadastro</h1>
+    <main
+        id="conteudo-principal"
+        class="resultado-cadastro-container"
+    >
+        <section
+            class="cartao-resultado resultado-erro"
+            aria-labelledby="titulo-resultado"
+        >
+            <div class="resultado-conteudo">
 
-            <ul>
-                <?php foreach ($erros as $erro): ?>
-                    <li><?= escapar($erro) ?></li>
-                <?php endforeach; ?>
-            </ul>
+                <span class="resultado-etiqueta etiqueta-erro">
+                    CADASTRO NÃO REALIZADO
+                </span>
 
-            <p>
-                <a href="index.html#cadastro">
-                    Voltar ao cadastro
+                <h2 id="titulo-resultado">
+                    Não foi possível concluir seu cadastro
+                </h2>
+
+                <p class="resultado-introducao">
+                    Confira os itens abaixo e tente novamente.
+                </p>
+
+                <ul class="lista-erros">
+                    <?php foreach ($erros as $erro): ?>
+                        <li>
+                            <?= escapar($erro) ?>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+
+                <a
+                    href="index.html#cadastro"
+                    class="botao-resultado"
+                >
+                    Corrigir formulário
                 </a>
-            </p>
+
+            </div>
         </section>
     </main>
 
@@ -408,7 +433,9 @@ try {
         ':nome' => $nome,
         ':senha_hash' => $senhaHash,
         ':nivel' => $nivel,
-        ':email' => $email !== '' ? $email : null,
+        ':email' => $email !== ''
+            ? $email
+            : null,
         ':perfil_url' => $perfilUrl !== ''
             ? $perfilUrl
             : null,
@@ -437,35 +464,151 @@ try {
     require __DIR__ . '/includes/cabecalho.php';
     ?>
 
-    <main>
-        <section>
-            <h1>Cadastro realizado com sucesso!</h1>
+    <main
+        id="conteudo-principal"
+        class="resultado-cadastro-container"
+    >
+        <section
+            class="cartao-resultado resultado-sucesso"
+            aria-labelledby="titulo-resultado"
+        >
+            <div class="resultado-conteudo">
 
-            <p>
-                O treinador
-                <strong><?= escapar($nome) ?></strong>
-                foi cadastrado no sistema.
-            </p>
+                <span class="resultado-etiqueta etiqueta-sucesso">
+                    ✓ CADASTRO CONCLUÍDO
+                </span>
 
-            <p>
-                <a href="login.php">
-                    Ir para o login
-                </a>
-            </p>
+                <h2 id="titulo-resultado">
+                    Bem-vindo à Liga Pokémon!
+                </h2>
 
-            <p>
-                <a href="index.html">
-                    Retornar à página inicial
-                </a>
-            </p>
+                <p class="resultado-introducao">
+                    Seu perfil de treinador foi criado com sucesso.
+                    Confira os dados:
+                </p>
+
+                <dl class="grade-dados-treinador">
+
+                    <div class="dado-treinador dado-nome">
+                        <dt>Nome</dt>
+
+                        <dd>
+                            <?= escapar($nome) ?>
+                        </dd>
+                    </div>
+
+                    <div class="dado-treinador">
+                        <dt>E-mail</dt>
+
+                        <dd>
+                            <?= escapar(
+                                $email !== ''
+                                    ? $email
+                                    : 'Não informado'
+                            ) ?>
+                        </dd>
+                    </div>
+
+                    <div class="dado-treinador">
+                        <dt>Nível</dt>
+
+                        <dd>
+                            <?= escapar(
+                                (string) $nivel
+                            ) ?>
+                        </dd>
+                    </div>
+
+                    <div class="dado-treinador">
+                        <dt>Região</dt>
+
+                        <dd>
+                            <?= escapar(
+                                ucfirst($regiao)
+                            ) ?>
+                        </dd>
+                    </div>
+
+                    <div class="dado-treinador">
+                        <dt>Experiência</dt>
+
+                        <dd>
+                            <?= escapar(
+                                ucfirst($experiencia)
+                            ) ?>
+                        </dd>
+                    </div>
+
+                    <div class="dado-treinador">
+                        <dt>Novidades</dt>
+
+                        <dd>
+                            <?= $novidades === 1
+                                ? 'Sim'
+                                : 'Não' ?>
+                        </dd>
+                    </div>
+
+                </dl>
+
+                <div class="motivacao-resultado">
+                    <h3>
+                        Motivação da jornada
+                    </h3>
+
+                    <p>
+                        <?= escapar($motivacao) ?>
+                    </p>
+                </div>
+
+                <div class="acoes-resultado">
+
+                    <a
+                        href="login.php"
+                        class="botao-resultado"
+                    >
+                        Ir para o login
+                    </a>
+
+                    <a
+                        href="index.html#cadastro"
+                        class="botao-resultado-secundario"
+                    >
+                        Novo cadastro
+                    </a>
+
+                </div>
+            </div>
+
+            <figure class="resultado-ilustracao">
+
+                <img
+                    src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png"
+                    alt="Pikachu representando a conclusão do cadastro"
+                    width="280"
+                    height="280"
+                >
+
+                <figcaption>
+                    Sua jornada Pokémon começa agora!
+                </figcaption>
+
+            </figure>
         </section>
     </main>
 
     <?php
 
     require __DIR__ . '/includes/rodape.php';
+    exit;
 
 } catch (PDOException $erro) {
+
+    /*
+    |--------------------------------------------------------------------------
+    | E-mail duplicado ou violação de constraint
+    |--------------------------------------------------------------------------
+    */
 
     if ($erro->getCode() === '23000') {
         http_response_code(409);
@@ -473,20 +616,37 @@ try {
         require __DIR__ . '/includes/cabecalho.php';
         ?>
 
-        <main>
-            <section>
-                <h1>Cadastro não realizado</h1>
+        <main
+            id="conteudo-principal"
+            class="resultado-cadastro-container"
+        >
+            <section
+                class="cartao-resultado resultado-erro"
+                aria-labelledby="titulo-resultado"
+            >
+                <div class="resultado-conteudo">
 
-                <p>
-                    O e-mail informado já está sendo utilizado
-                    ou algum dado viola uma regra do sistema.
-                </p>
+                    <span class="resultado-etiqueta etiqueta-erro">
+                        CADASTRO NÃO REALIZADO
+                    </span>
 
-                <p>
-                    <a href="index.html#cadastro">
+                    <h2 id="titulo-resultado">
+                        Não foi possível concluir seu cadastro
+                    </h2>
+
+                    <p class="resultado-introducao">
+                        O e-mail informado já está sendo utilizado
+                        ou algum dado viola uma regra do sistema.
+                    </p>
+
+                    <a
+                        href="index.html#cadastro"
+                        class="botao-resultado"
+                    >
                         Voltar ao cadastro
                     </a>
-                </p>
+
+                </div>
             </section>
         </main>
 
@@ -495,6 +655,12 @@ try {
         require __DIR__ . '/includes/rodape.php';
         exit;
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Erro interno
+    |--------------------------------------------------------------------------
+    */
 
     registrarLog(
         'ERRO_INTERNO',
@@ -509,24 +675,42 @@ try {
     require __DIR__ . '/includes/cabecalho.php';
     ?>
 
-    <main>
-        <section>
-            <h1>Erro interno</h1>
+    <main
+        id="conteudo-principal"
+        class="resultado-cadastro-container"
+    >
+        <section
+            class="cartao-resultado resultado-erro"
+            aria-labelledby="titulo-resultado"
+        >
+            <div class="resultado-conteudo">
 
-            <p>
-                Não foi possível concluir o cadastro.
-                Tente novamente mais tarde.
-            </p>
+                <span class="resultado-etiqueta etiqueta-erro">
+                    ERRO INTERNO
+                </span>
 
-            <p>
-                <a href="index.html#cadastro">
+                <h2 id="titulo-resultado">
+                    Não foi possível concluir o cadastro
+                </h2>
+
+                <p class="resultado-introducao">
+                    Ocorreu um erro interno.
+                    Tente novamente mais tarde.
+                </p>
+
+                <a
+                    href="index.html#cadastro"
+                    class="botao-resultado"
+                >
                     Voltar
                 </a>
-            </p>
+
+            </div>
         </section>
     </main>
 
     <?php
 
     require __DIR__ . '/includes/rodape.php';
+    exit;
 }
