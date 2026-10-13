@@ -60,3 +60,28 @@ CREATE TABLE IF NOT EXISTS treinadores (
     CONSTRAINT chk_termos
         CHECK (termos_aceitos = TRUE)
 );
+CREATE TABLE IF NOT EXISTS tokens_persistentes (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+
+    treinador_id INT UNSIGNED NOT NULL,
+
+    selector CHAR(24) NOT NULL,
+
+    token_hash CHAR(64) NOT NULL,
+
+    expira_em DATETIME NOT NULL,
+
+    criado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT uq_token_selector
+        UNIQUE (selector),
+
+    CONSTRAINT fk_token_treinador
+        FOREIGN KEY (treinador_id)
+        REFERENCES treinadores(id)
+        ON DELETE CASCADE,
+
+    INDEX idx_token_treinador (treinador_id),
+
+    INDEX idx_token_expira (expira_em)
+);
