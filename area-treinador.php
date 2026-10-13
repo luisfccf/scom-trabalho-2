@@ -28,7 +28,7 @@ $perfilAcesso = $_SESSION['perfil_acesso'] ?? 'treinador';
             <strong>
                 <?= htmlspecialchars(
                     $nomeUsuario,
-                    ENT_QUOTES,
+                    ENT_QUOTES | ENT_SUBSTITUTE,
                     'UTF-8'
                 ) ?>
             </strong>.
@@ -39,7 +39,7 @@ $perfilAcesso = $_SESSION['perfil_acesso'] ?? 'treinador';
             <strong>
                 <?= htmlspecialchars(
                     $perfilAcesso,
-                    ENT_QUOTES,
+                    ENT_QUOTES | ENT_SUBSTITUTE,
                     'UTF-8'
                 ) ?>
             </strong>
@@ -48,6 +48,14 @@ $perfilAcesso = $_SESSION['perfil_acesso'] ?? 'treinador';
         <p>
             Você está autenticado no sistema.
         </p>
+
+        <?php if ($perfilAcesso === 'admin'): ?>
+            <p>
+                <a href="area-admin.php">
+                    Área administrativa
+                </a>
+            </p>
+        <?php endif; ?>
 
         <p>
             <a href="logout.php">
