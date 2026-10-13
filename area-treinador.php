@@ -4,8 +4,23 @@ declare(strict_types=1);
 
 session_start();
 
+/*
+|--------------------------------------------------------------------------
+| Login persistente
+|--------------------------------------------------------------------------
+*/
+
+require_once __DIR__ . '/includes/autenticacao-persistente.php';
+
+tentarRestaurarLoginPersistente($pdo);
+
+/*
+|--------------------------------------------------------------------------
+| Proteção da rota
+|--------------------------------------------------------------------------
+*/
+
 if (empty($_SESSION['usuario_id'])) {
-    http_response_code(401);
     header('Location: login.php');
     exit;
 }
@@ -14,8 +29,11 @@ $tituloPagina = 'Área do Treinador - Mundo Pokémon';
 
 require __DIR__ . '/includes/cabecalho.php';
 
-$nomeUsuario = $_SESSION['usuario_nome'] ?? 'Treinador';
-$perfilAcesso = $_SESSION['perfil_acesso'] ?? 'treinador';
+$nomeUsuario =
+    $_SESSION['usuario_nome'] ?? 'Treinador';
+
+$perfilAcesso =
+    $_SESSION['perfil_acesso'] ?? 'treinador';
 
 ?>
 

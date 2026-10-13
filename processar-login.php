@@ -4,19 +4,21 @@ declare(strict_types=1);
 
 session_start();
 
-require __DIR__ . '/config/conexao.php';
-require __DIR__ . '/includes/logger.php';
+require_once __DIR__ . '/config/conexao.php';
+require_once __DIR__ . '/includes/logger.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
-
     header('Location: login.php');
     exit;
 }
 
 /*
- * Validação do token CSRF.
- */
+|--------------------------------------------------------------------------
+| Validação CSRF
+|--------------------------------------------------------------------------
+*/
+
 $csrfRecebido = $_POST['csrf_token'] ?? '';
 
 if (
@@ -39,8 +41,11 @@ if (
 }
 
 /*
- * Validação do e-mail e senha.
- */
+|--------------------------------------------------------------------------
+| Dados recebidos
+|--------------------------------------------------------------------------
+*/
+
 $email = filter_input(
     INPUT_POST,
     'email',
@@ -48,6 +53,16 @@ $email = filter_input(
 );
 
 $senha = $_POST['senha'] ?? '';
+
+$manterConectado =
+    isset($_POST['manter_conectado']) &&
+    $_POST['manter_conectado'] === '1';
+
+/*
+|--------------------------------------------------------------------------
+| Validação
+|--------------------------------------------------------------------------
+*/
 
 if (
     $email === false ||
@@ -71,9 +86,13 @@ if (
 }
 
 try {
+
     /*
-     * Busca o treinador utilizando prepared statement.
-     */
+    |--------------------------------------------------------------------------
+    | Busca usuário
+    |--------------------------------------------------------------------------
+    */
+
     $comando = $pdo->prepare(
         'SELECT
             id,
@@ -87,15 +106,19 @@ try {
     );
 
     $comando->execute([
-        'email' => $email
+        ':email' => $email
     ]);
 
-    $treinador = $comando->fetch(PDO::FETCH_ASSOC);
+    $treinador = $comando->fetch(
+        PDO::FETCH_ASSOC
+    );
 
     /*
-     * A mensagem é genérica para não revelar
-     * se o e-mail existe no sistema.
-     */
+    |--------------------------------------------------------------------------
+    | Verifica senha
+    |--------------------------------------------------------------------------
+    */
+
     if (
         !$treinador ||
         !password_verify(
@@ -121,10 +144,18 @@ try {
     }
 
     /*
-     * Proteção contra reutilização do ID
-     * anterior da sessão.
-     */
+    |--------------------------------------------------------------------------
+    | Proteção contra session fixation
+    |--------------------------------------------------------------------------
+    */
+
     session_regenerate_id(true);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Criação da sessão
+    |--------------------------------------------------------------------------
+    */
 
     $_SESSION['usuario_id'] =
         (int) $treinador['id'];
@@ -138,18 +169,226 @@ try {
     $_SESSION['perfil_acesso'] =
         $treinador['perfil_acesso'];
 
-    /*
-     * Novo token CSRF após o login.
-     */
     $_SESSION['csrf_token'] =
         bin2hex(random_bytes(32));
+
+    /*
+    |--------------------------------------------------------------------------
+    | Remove tokens expirados
+    |--------------------------------------------------------------------------
+    */
+
+    $limparExpirados = $pdo->prepare(
+        'DELETE FROM tokens_persistentes
+         WHERE expira_em < NOW()'
+    );
+
+    $limparExpirados->execute();
+
+    /*
+    |--------------------------------------------------------------------------
+    | Manter-me conectado
+    |--------------------------------------------------------------------------
+    */
+
+    if ($manterConectado) {
+
+        /*
+         * Selector público usado para localizar
+         * rapidamente o token no banco.
+         */
+        $selector = bin2hex(
+            random_bytes(12)
+        );
+
+        /*
+         * Token secreto.
+         */
+        $token = bin2hex(
+            random_bytes(32)
+        );
+
+        /*
+         * No banco é armazenado somente o hash.
+         */
+        $tokenHash = hash(
+            'sha256',
+            $token
+        );
+
+        /*
+         * Validade de 30 dias.
+         */
+        $expiraTimestamp =
+            time() + (60 * 60 * 24 * 30);
+
+        $timezone = new DateTimeZone(
+            'America/Sao_Paulo'
+        );
+
+        $expiracao = new DateTimeImmutable(
+            '@' . $expiraTimestamp
+        );
+
+        $expiracao = $expiracao->setTimezone(
+            $timezone
+        );
+
+        $expiraBanco = $expiracao->format(
+            'Y-m-d H:i:s'
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Remove tokens anteriores do usuário
+        |--------------------------------------------------------------------------
+        */
+
+        $removerTokens = $pdo->prepare(
+            'DELETE FROM tokens_persistentes
+             WHERE treinador_id = :treinador_id'
+        );
+
+        $removerTokens->execute([
+            ':treinador_id' =>
+                (int) $treinador['id']
+        ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Salva token persistente
+        |--------------------------------------------------------------------------
+        */
+
+        $salvarToken = $pdo->prepare(
+            'INSERT INTO tokens_persistentes (
+                treinador_id,
+                selector,
+                token_hash,
+                expira_em
+            ) VALUES (
+                :treinador_id,
+                :selector,
+                :token_hash,
+                :expira_em
+            )'
+        );
+
+        $salvarToken->execute([
+            ':treinador_id' =>
+                (int) $treinador['id'],
+
+            ':selector' =>
+                $selector,
+
+            ':token_hash' =>
+                $tokenHash,
+
+            ':expira_em' =>
+                $expiraBanco
+        ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Cookie persistente
+        |--------------------------------------------------------------------------
+        */
+
+        $cookieSeguro =
+            !empty($_SERVER['HTTPS']) &&
+            $_SERVER['HTTPS'] !== 'off';
+
+        setcookie(
+            'lembrar_login',
+            $selector . ':' . $token,
+            [
+                'expires' => $expiraTimestamp,
+                'path' => '/',
+                'secure' => $cookieSeguro,
+                'httponly' => true,
+                'samesite' => 'Lax'
+            ]
+        );
+
+    } else {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Se não marcou "Manter-me conectado",
+        | remove eventual cookie persistente antigo
+        |--------------------------------------------------------------------------
+        */
+
+        if (isset($_COOKIE['lembrar_login'])) {
+
+            $cookieAtual =
+                (string) $_COOKIE['lembrar_login'];
+
+            $partes = explode(
+                ':',
+                $cookieAtual,
+                2
+            );
+
+            if (count($partes) === 2) {
+
+                $selectorAnterior =
+                    $partes[0];
+
+                if (
+                    preg_match(
+                        '/^[a-f0-9]{24}$/',
+                        $selectorAnterior
+                    )
+                ) {
+                    $removerToken = $pdo->prepare(
+                        'DELETE FROM tokens_persistentes
+                         WHERE selector = :selector'
+                    );
+
+                    $removerToken->execute([
+                        ':selector' =>
+                            $selectorAnterior
+                    ]);
+                }
+            }
+
+            $cookieSeguro =
+                !empty($_SERVER['HTTPS']) &&
+                $_SERVER['HTTPS'] !== 'off';
+
+            setcookie(
+                'lembrar_login',
+                '',
+                [
+                    'expires' => time() - 3600,
+                    'path' => '/',
+                    'secure' => $cookieSeguro,
+                    'httponly' => true,
+                    'samesite' => 'Lax'
+                ]
+            );
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Log
+    |--------------------------------------------------------------------------
+    */
 
     registrarLog(
         'LOGIN_SUCESSO',
         'Login realizado com sucesso.',
         [
-            'usuario_id' => (int) $treinador['id'],
-            'perfil' => $treinador['perfil_acesso']
+            'usuario_id' =>
+                (int) $treinador['id'],
+
+            'perfil' =>
+                $treinador['perfil_acesso'],
+
+            'persistente' =>
+                $manterConectado
         ]
     );
 
@@ -157,6 +396,7 @@ try {
     exit;
 
 } catch (PDOException $erro) {
+
     http_response_code(500);
 
     registrarLog(
