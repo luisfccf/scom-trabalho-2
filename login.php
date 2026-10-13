@@ -5,8 +5,11 @@ declare(strict_types=1);
 session_start();
 
 /*
- * Gera um token CSRF para proteger o formulário.
- */
+|--------------------------------------------------------------------------
+| Gera token CSRF
+|--------------------------------------------------------------------------
+*/
+
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(
         random_bytes(32)
@@ -14,9 +17,13 @@ if (empty($_SESSION['csrf_token'])) {
 }
 
 /*
- * Mensagens enviadas pelo processamento do login.
- */
+|--------------------------------------------------------------------------
+| Recupera mensagem de erro do login
+|--------------------------------------------------------------------------
+*/
+
 $erroLogin = $_SESSION['erro_login'] ?? '';
+
 unset($_SESSION['erro_login']);
 
 $tituloPagina = 'Login - Mundo Pokémon';
@@ -41,7 +48,7 @@ require __DIR__ . '/includes/cabecalho.php';
             >
                 <?= htmlspecialchars(
                     $erroLogin,
-                    ENT_QUOTES,
+                    ENT_QUOTES | ENT_SUBSTITUTE,
                     'UTF-8'
                 ) ?>
             </div>
@@ -58,7 +65,7 @@ require __DIR__ . '/includes/cabecalho.php';
                 name="csrf_token"
                 value="<?= htmlspecialchars(
                     $_SESSION['csrf_token'],
-                    ENT_QUOTES,
+                    ENT_QUOTES | ENT_SUBSTITUTE,
                     'UTF-8'
                 ) ?>"
             >
@@ -92,6 +99,28 @@ require __DIR__ . '/includes/cabecalho.php';
                     autocomplete="current-password"
                     required
                 >
+            </div>
+
+            <div class="campo-manter-conectado">
+                <div class="linha-checkbox">
+
+                    <input
+                        type="checkbox"
+                        id="manter-conectado"
+                        name="manter_conectado"
+                        value="1"
+                    >
+
+                    <label for="manter-conectado">
+                        Manter-me conectado
+                    </label>
+
+                </div>
+
+                <small>
+                    Permite continuar conectado mesmo após
+                    fechar o navegador.
+                </small>
             </div>
 
             <button type="submit">
