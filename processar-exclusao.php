@@ -4,11 +4,28 @@ declare(strict_types=1);
 
 session_start();
 
+require_once __DIR__ . '/config/conexao.php';
+require_once __DIR__ . '/repositories/TreinadorRepository.php';
+
+$repositorio = new TreinadorRepository($pdo);
+
+/*
+|--------------------------------------------------------------------------
+| Autenticação
+|--------------------------------------------------------------------------
+*/
+
 if (empty($_SESSION['usuario_id'])) {
     http_response_code(401);
     header('Location: login.php');
     exit;
 }
+
+/*
+|--------------------------------------------------------------------------
+| Autorização
+|--------------------------------------------------------------------------
+*/
 
 if (
     !isset($_SESSION['perfil_acesso']) ||
@@ -18,13 +35,26 @@ if (
     exit('Acesso negado.');
 }
 
+/*
+|--------------------------------------------------------------------------
+| Apenas POST
+|--------------------------------------------------------------------------
+*/
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     header('Location: area-admin.php');
     exit;
 }
 
-$csrfRecebido = $_POST['csrf_token'] ?? '';
+/*
+|--------------------------------------------------------------------------
+| Validação CSRF
+|--------------------------------------------------------------------------
+*/
+
+$csrfRecebido =
+    $_POST['csrf_token'] ?? '';
 
 if (
     empty($_SESSION['csrf_token']) ||
@@ -38,74 +68,88 @@ if (
     exit('Token CSRF inválido.');
 }
 
+/*
+|--------------------------------------------------------------------------
+| ID
+|--------------------------------------------------------------------------
+*/
+
 $id = filter_input(
     INPUT_POST,
     'id',
     FILTER_VALIDATE_INT
 );
 
-if (!$id || $id <= 0) {
+if (
+    $id === false ||
+    $id === null ||
+    $id <= 0
+) {
     http_response_code(422);
     exit('ID inválido.');
 }
 
 /*
- * Impede que o administrador exclua
- * a própria conta enquanto está logado.
- */
-if ($id === (int) $_SESSION['usuario_id']) {
+|--------------------------------------------------------------------------
+| Impede exclusão da própria conta
+|--------------------------------------------------------------------------
+*/
+
+if (
+    (int) $id ===
+    (int) $_SESSION['usuario_id']
+) {
     http_response_code(403);
-    exit('Você não pode excluir sua própria conta.');
+
+    exit(
+        'Você não pode excluir sua própria conta.'
+    );
 }
 
-require __DIR__ . '/config/conexao.php';
+/*
+|--------------------------------------------------------------------------
+| Exclusão através do Repository
+|--------------------------------------------------------------------------
+*/
 
 try {
-    /*
-     * Verifica se o treinador existe.
-     */
-    $consulta = $pdo->prepare(
-        'SELECT id
-        FROM treinadores
-        WHERE id = :id
-        LIMIT 1'
-    );
 
-    $consulta->execute([
-        'id' => $id
-    ]);
+    $treinador =
+        $repositorio->buscarPorId(
+            (int) $id
+        );
 
-    $treinador = $consulta->fetch(
-        PDO::FETCH_ASSOC
-    );
-
-    if (!$treinador) {
+    if ($treinador === null) {
         http_response_code(404);
-        exit('Treinador não encontrado.');
+
+        exit(
+            'Treinador não encontrado.'
+        );
     }
 
-    /*
-     * Exclusão usando consulta parametrizada.
-     */
-    $comando = $pdo->prepare(
-        'DELETE FROM treinadores
-        WHERE id = :id'
+    $repositorio->excluirPorId(
+        (int) $id
     );
 
-    $comando->execute([
-        'id' => $id
-    ]);
-
     /*
-     * Renova o token após a operação.
-     */
-    $_SESSION['csrf_token'] =
-        bin2hex(random_bytes(32));
+    |--------------------------------------------------------------------------
+    | Renova CSRF
+    |--------------------------------------------------------------------------
+    */
 
-    header('Location: area-admin.php');
+    $_SESSION['csrf_token'] =
+        bin2hex(
+            random_bytes(32)
+        );
+
+    header(
+        'Location: area-admin.php'
+    );
+
     exit;
 
 } catch (PDOException $erro) {
+
     http_response_code(500);
 
     exit(

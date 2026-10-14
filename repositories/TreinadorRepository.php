@@ -67,4 +67,22 @@ final class TreinadorRepository
             ':id' => $id
         ]);
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Exclui treinador
+    |--------------------------------------------------------------------------
+    */
+
+    public function excluirPorId(int $id): void
+    {
+        $comando = $this->pdo->prepare(
+            'DELETE FROM treinadores
+             WHERE id = :id'
+        );
+
+        $comando->execute([
+            ':id' => $id
+        ]);
+    }
 }
