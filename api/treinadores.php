@@ -799,7 +799,108 @@ if ($metodo === 'PUT') {
     }
 }
 
+/*
+|--------------------------------------------------------------------------
+| DELETE - Excluir treinador
+|--------------------------------------------------------------------------
+|
+| DELETE /api/treinadores.php?id=20
+|
+*/
 
+if ($metodo === 'DELETE') {
+
+    validarCsrfApi();
+
+    $id = filter_var(
+        $_GET['id'] ?? null,
+        FILTER_VALIDATE_INT
+    );
+
+    if ($id === false || $id === null || $id < 1) {
+        responderJson(400, [
+            'sucesso' => false,
+            'mensagem' => 'ID inválido.'
+        ]);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Impede administrador de excluir a própria conta
+    |--------------------------------------------------------------------------
+    */
+
+    if ((int) $_SESSION['usuario_id'] === (int) $id) {
+        responderJson(403, [
+            'sucesso' => false,
+            'mensagem' =>
+                'Não é permitido excluir o próprio usuário.'
+        ]);
+    }
+
+    try {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Verifica se existe
+        |--------------------------------------------------------------------------
+        */
+
+        $consulta = $pdo->prepare(
+            'SELECT id, nome
+             FROM treinadores
+             WHERE id = :id
+             LIMIT 1'
+        );
+
+        $consulta->execute([
+            ':id' => $id
+        ]);
+
+        $treinador = $consulta->fetch();
+
+        if (!$treinador) {
+            responderJson(404, [
+                'sucesso' => false,
+                'mensagem' =>
+                    'Treinador não encontrado.'
+            ]);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Exclusão
+        |--------------------------------------------------------------------------
+        */
+
+        $exclusao = $pdo->prepare(
+            'DELETE FROM treinadores
+             WHERE id = :id'
+        );
+
+        $exclusao->execute([
+            ':id' => $id
+        ]);
+
+        responderJson(200, [
+            'sucesso' => true,
+            'mensagem' =>
+                'Treinador excluído com sucesso.',
+            'dados' => [
+                'id' => (int) $id,
+                'nome' => $treinador['nome']
+            ]
+        ]);
+
+    } catch (PDOException $erro) {
+
+        responderJson(500, [
+            'sucesso' => false,
+            'mensagem' =>
+                'Erro interno do servidor.'
+        ]);
+    }
+}
 /*
 |--------------------------------------------------------------------------
 | Método não permitido
@@ -811,8 +912,9 @@ responderJson(405, [
     'mensagem' =>
         'Método não permitido.',
     'metodos_permitidos' => [
-        'GET',
-        'POST',
-        'PUT'
-    ]
+    'GET',
+    'POST',
+    'PUT',
+    'DELETE'
+]
 ]);
