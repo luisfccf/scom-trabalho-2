@@ -6,6 +6,9 @@ session_start();
 
 require_once __DIR__ . '/config/conexao.php';
 require_once __DIR__ . '/includes/validacoes.php';
+require_once __DIR__ . '/repositories/TreinadorRepository.php';
+
+$repositorio = new TreinadorRepository($pdo);
 
 /*
 |--------------------------------------------------------------------------
@@ -54,7 +57,10 @@ $csrfRecebido = $_POST['csrf_token'] ?? '';
 if (
     !isset($_SESSION['csrf_token']) ||
     !is_string($csrfRecebido) ||
-    !hash_equals($_SESSION['csrf_token'], $csrfRecebido)
+    !hash_equals(
+        $_SESSION['csrf_token'],
+        $csrfRecebido
+    )
 ) {
     http_response_code(403);
     exit('Token de segurança inválido.');
@@ -87,7 +93,9 @@ $nivelRecebido = filter_input(
 );
 
 $regiao = strtolower(
-    trim((string) ($_POST['regiao'] ?? ''))
+    trim(
+        (string) ($_POST['regiao'] ?? '')
+    )
 );
 
 $perfilAcesso = trim(
@@ -100,7 +108,11 @@ $perfilAcesso = trim(
 |--------------------------------------------------------------------------
 */
 
-if ($id === false || $id === null || $id <= 0) {
+if (
+    $id === false ||
+    $id === null ||
+    $id <= 0
+) {
     http_response_code(422);
     exit('ID de treinador inválido.');
 }
@@ -113,7 +125,10 @@ if ($id === false || $id === null || $id <= 0) {
 
 if (!validarNome($nome)) {
     http_response_code(422);
-    exit('O nome deve possuir entre 2 e 80 caracteres.');
+
+    exit(
+        'O nome deve possuir entre 2 e 80 caracteres.'
+    );
 }
 
 /*
@@ -139,7 +154,10 @@ if (
     !validarNivel($nivelRecebido)
 ) {
     http_response_code(422);
-    exit('O nível deve estar entre 1 e 100.');
+
+    exit(
+        'O nível deve estar entre 1 e 100.'
+    );
 }
 
 $nivel = (int) $nivelRecebido;
@@ -162,7 +180,13 @@ $regioesPermitidas = [
     'paldea'
 ];
 
-if (!in_array($regiao, $regioesPermitidas, true)) {
+if (
+    !in_array(
+        $regiao,
+        $regioesPermitidas,
+        true
+    )
+) {
     http_response_code(422);
     exit('Região inválida.');
 }
@@ -175,65 +199,53 @@ if (!in_array($regiao, $regioesPermitidas, true)) {
 
 if (!validarPerfilAcesso($perfilAcesso)) {
     http_response_code(422);
-    exit('Perfil de acesso inválido.');
+
+    exit(
+        'Perfil de acesso inválido.'
+    );
 }
 
 /*
 |--------------------------------------------------------------------------
-| Atualização no banco de dados
+| Atualização através do Repository
 |--------------------------------------------------------------------------
 */
 
 try {
+
     /*
     |--------------------------------------------------------------------------
     | Verifica se o treinador existe
     |--------------------------------------------------------------------------
     */
 
-    $consulta = $pdo->prepare(
-        'SELECT id
-         FROM treinadores
-         WHERE id = :id
-         LIMIT 1'
-    );
+    $treinador =
+        $repositorio->buscarPorId(
+            (int) $id
+        );
 
-    $consulta->execute([
-        ':id' => $id
-    ]);
-
-    if (!$consulta->fetch()) {
+    if ($treinador === null) {
         http_response_code(404);
-        exit('Treinador não encontrado.');
+
+        exit(
+            'Treinador não encontrado.'
+        );
     }
 
     /*
     |--------------------------------------------------------------------------
-    | UPDATE parametrizado
+    | Atualiza os dados
     |--------------------------------------------------------------------------
     */
 
-    $sql = '
-        UPDATE treinadores
-        SET
-            nome = :nome,
-            email = :email,
-            nivel = :nivel,
-            regiao = :regiao,
-            perfil_acesso = :perfil_acesso
-        WHERE id = :id
-    ';
-
-    $stmt = $pdo->prepare($sql);
-
-    $stmt->execute([
-        ':nome' => $nome,
-        ':email' => $email,
-        ':nivel' => $nivel,
-        ':regiao' => $regiao,
-        ':perfil_acesso' => $perfilAcesso,
-        ':id' => $id
-    ]);
+    $repositorio->atualizarDadosAdministrativos(
+        (int) $id,
+        $nome,
+        $email,
+        $nivel,
+        $regiao,
+        $perfilAcesso
+    );
 
     /*
     |--------------------------------------------------------------------------
@@ -241,9 +253,10 @@ try {
     |--------------------------------------------------------------------------
     */
 
-    $_SESSION['csrf_token'] = bin2hex(
-        random_bytes(32)
-    );
+    $_SESSION['csrf_token'] =
+        bin2hex(
+            random_bytes(32)
+        );
 
     /*
     |--------------------------------------------------------------------------
@@ -251,20 +264,26 @@ try {
     |--------------------------------------------------------------------------
     */
 
-    header('Location: area-admin.php');
+    header(
+        'Location: area-admin.php'
+    );
+
     exit;
 
 } catch (PDOException $erro) {
 
     /*
     |--------------------------------------------------------------------------
-    | E-mail duplicado / violação de UNIQUE
+    | E-mail duplicado
     |--------------------------------------------------------------------------
     */
 
     if ($erro->getCode() === '23000') {
         http_response_code(409);
-        exit('Este e-mail já está sendo utilizado.');
+
+        exit(
+            'Este e-mail já está sendo utilizado.'
+        );
     }
 
     /*
@@ -274,5 +293,8 @@ try {
     */
 
     http_response_code(500);
-    exit('Erro interno ao atualizar o treinador.');
+
+    exit(
+        'Erro interno ao atualizar o treinador.'
+    );
 }
