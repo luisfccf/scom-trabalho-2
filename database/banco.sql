@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS treinadores (
 
     nivel TINYINT UNSIGNED NOT NULL DEFAULT 1,
 
-    email VARCHAR(150) NULL UNIQUE,
+    email VARCHAR(150) NOT NULL UNIQUE,
 
     perfil_url VARCHAR(255) NULL,
 
@@ -33,12 +33,14 @@ CREATE TABLE IF NOT EXISTS treinadores (
 
     cor_uniforme CHAR(7) NOT NULL DEFAULT '#c51d1d',
 
-    termos_aceitos BOOLEAN NOT NULL DEFAULT FALSE,
+    termos_aceitos BOOLEAN NOT NULL DEFAULT TRUE,
 
     criado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT chk_nivel
-        CHECK (nivel BETWEEN 1 AND 100),
+        CHECK (
+            nivel BETWEEN 1 AND 100
+        ),
 
     CONSTRAINT chk_perfil_acesso
         CHECK (
@@ -58,8 +60,11 @@ CREATE TABLE IF NOT EXISTS treinadores (
         ),
 
     CONSTRAINT chk_termos
-        CHECK (termos_aceitos = TRUE)
+        CHECK (
+            termos_aceitos = TRUE
+        )
 );
+
 CREATE TABLE IF NOT EXISTS tokens_persistentes (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
 
@@ -81,7 +86,11 @@ CREATE TABLE IF NOT EXISTS tokens_persistentes (
         REFERENCES treinadores(id)
         ON DELETE CASCADE,
 
-    INDEX idx_token_treinador (treinador_id),
+    INDEX idx_token_treinador (
+        treinador_id
+    ),
 
-    INDEX idx_token_expira (expira_em)
+    INDEX idx_token_expira (
+        expira_em
+    )
 );
