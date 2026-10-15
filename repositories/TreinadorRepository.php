@@ -35,6 +35,65 @@ final class TreinadorRepository
 
     /*
     |--------------------------------------------------------------------------
+    | Cadastra treinador
+    |--------------------------------------------------------------------------
+    */
+
+    public function cadastrar(array $dados): int
+    {
+        $consulta = $this->pdo->prepare(
+            'INSERT INTO treinadores (
+                nome,
+                senha_hash,
+                nivel,
+                email,
+                perfil_url,
+                motivacao,
+                novidades,
+                experiencia,
+                regiao,
+                data_nascimento,
+                horario_preferido,
+                cor_uniforme,
+                termos_aceitos
+            ) VALUES (
+                :nome,
+                :senha_hash,
+                :nivel,
+                :email,
+                :perfil_url,
+                :motivacao,
+                :novidades,
+                :experiencia,
+                :regiao,
+                :data_nascimento,
+                :horario_preferido,
+                :cor_uniforme,
+                :termos_aceitos
+            )'
+        );
+
+        $consulta->execute([
+            ':nome' => $dados['nome'],
+            ':senha_hash' => $dados['senha_hash'],
+            ':nivel' => $dados['nivel'],
+            ':email' => $dados['email'],
+            ':perfil_url' => $dados['perfil_url'],
+            ':motivacao' => $dados['motivacao'],
+            ':novidades' => $dados['novidades'],
+            ':experiencia' => $dados['experiencia'],
+            ':regiao' => $dados['regiao'],
+            ':data_nascimento' => $dados['data_nascimento'],
+            ':horario_preferido' => $dados['horario_preferido'],
+            ':cor_uniforme' => $dados['cor_uniforme'],
+            ':termos_aceitos' => $dados['termos_aceitos']
+        ]);
+
+        return (int) $this->pdo->lastInsertId();
+    }
+
+    /*
+    |--------------------------------------------------------------------------
     | Atualiza dados administrativos
     |--------------------------------------------------------------------------
     */
