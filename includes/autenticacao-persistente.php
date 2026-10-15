@@ -3,20 +3,49 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../config/conexao.php';
+require_once __DIR__ . '/../repositories/TreinadorRepository.php';
+require_once __DIR__ . '/../repositories/TokenPersistenteRepository.php';
 
 function tentarRestaurarLoginPersistente(PDO $pdo): void
 {
+    /*
+    |--------------------------------------------------------------------------
+    | Se já existe sessão, não precisa restaurar
+    |--------------------------------------------------------------------------
+    */
+
     if (!empty($_SESSION['usuario_id'])) {
         return;
     }
 
-    $cookie = $_COOKIE['lembrar_login'] ?? '';
+    /*
+    |--------------------------------------------------------------------------
+    | Recupera cookie persistente
+    |--------------------------------------------------------------------------
+    */
 
-    if (!is_string($cookie) || $cookie === '') {
+    $cookie =
+        $_COOKIE['lembrar_login'] ?? '';
+
+    if (
+        !is_string($cookie) ||
+        $cookie === ''
+    ) {
         return;
     }
 
-    $partes = explode(':', $cookie, 2);
+    /*
+    |--------------------------------------------------------------------------
+    | Separa selector e token
+    |--------------------------------------------------------------------------
+    */
+
+    $partes =
+        explode(
+            ':',
+            $cookie,
+            2
+        );
 
     if (count($partes) !== 2) {
         return;
@@ -24,39 +53,52 @@ function tentarRestaurarLoginPersistente(PDO $pdo): void
 
     [$selector, $token] = $partes;
 
+    /*
+    |--------------------------------------------------------------------------
+    | Valida formato
+    |--------------------------------------------------------------------------
+    */
+
     if (
-        !preg_match('/^[a-f0-9]{24}$/', $selector) ||
-        !preg_match('/^[a-f0-9]{64}$/', $token)
+        !preg_match(
+            '/^[a-f0-9]{24}$/',
+            $selector
+        ) ||
+        !preg_match(
+            '/^[a-f0-9]{64}$/',
+            $token
+        )
     ) {
         return;
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Repositories
+    |--------------------------------------------------------------------------
+    */
+
+    $tokenRepository =
+        new TokenPersistenteRepository($pdo);
+
+    $treinadorRepository =
+        new TreinadorRepository($pdo);
+
     try {
-        $consulta = $pdo->prepare(
-            'SELECT
-                tp.id AS token_id,
-                tp.token_hash,
-                tp.expira_em,
-                t.id AS treinador_id,
-                t.nome,
-                t.email,
-                t.perfil_acesso
-            FROM tokens_persistentes tp
-            INNER JOIN treinadores t
-                ON t.id = tp.treinador_id
-            WHERE tp.selector = :selector
-            LIMIT 1'
-        );
 
-        $consulta->execute([
-            ':selector' => $selector
-        ]);
+        /*
+        |--------------------------------------------------------------------------
+        | Busca token através do Repository
+        |--------------------------------------------------------------------------
+        */
 
-        $registro = $consulta->fetch(
-            PDO::FETCH_ASSOC
-        );
+        $registroToken =
+            $tokenRepository
+                ->buscarPorSelector(
+                    $selector
+                );
 
-        if (!$registro) {
+        if ($registroToken === null) {
             return;
         }
 
@@ -67,37 +109,52 @@ function tentarRestaurarLoginPersistente(PDO $pdo): void
         */
 
         if (
-            strtotime($registro['expira_em']) < time()
+            strtotime(
+                $registroToken['expira_em']
+            ) < time()
         ) {
-            $remover = $pdo->prepare(
-                'DELETE FROM tokens_persistentes
-                 WHERE id = :id'
-            );
-
-            $remover->execute([
-                ':id' => (int) $registro['token_id']
-            ]);
+            $tokenRepository
+                ->removerPorId(
+                    (int) $registroToken['id']
+                );
 
             return;
         }
 
         /*
         |--------------------------------------------------------------------------
-        | Verifica token
+        | Verifica token secreto
         |--------------------------------------------------------------------------
         */
 
-        $tokenHashRecebido = hash(
-            'sha256',
-            $token
-        );
+        $tokenHashRecebido =
+            hash(
+                'sha256',
+                $token
+            );
 
         if (
             !hash_equals(
-                $registro['token_hash'],
+                $registroToken['token_hash'],
                 $tokenHashRecebido
             )
         ) {
+            return;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Busca treinador associado ao token
+        |--------------------------------------------------------------------------
+        */
+
+        $treinador =
+            $treinadorRepository
+                ->buscarPorId(
+                    (int) $registroToken['treinador_id']
+                );
+
+        if ($treinador === null) {
             return;
         }
 
@@ -110,21 +167,29 @@ function tentarRestaurarLoginPersistente(PDO $pdo): void
         session_regenerate_id(true);
 
         $_SESSION['usuario_id'] =
-            (int) $registro['treinador_id'];
+            (int) $treinador['id'];
 
         $_SESSION['usuario_nome'] =
-            $registro['nome'];
+            $treinador['nome'];
 
         $_SESSION['usuario_email'] =
-            $registro['email'];
+            $treinador['email'];
 
         $_SESSION['perfil_acesso'] =
-            $registro['perfil_acesso'];
+            $treinador['perfil_acesso'];
 
         $_SESSION['csrf_token'] =
-            bin2hex(random_bytes(32));
+            bin2hex(
+                random_bytes(32)
+            );
 
     } catch (PDOException $erro) {
+
+        /*
+         * Se houver erro no banco, simplesmente
+         * não restaura o login persistente.
+         */
+
         return;
     }
 }
