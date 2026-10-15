@@ -5,8 +5,11 @@ declare(strict_types=1);
 session_start();
 
 /*
- * Verifica se o usuário está autenticado.
- */
+|--------------------------------------------------------------------------
+| Verifica autenticação
+|--------------------------------------------------------------------------
+*/
+
 if (empty($_SESSION['usuario_id'])) {
     http_response_code(401);
     header('Location: login.php');
@@ -14,8 +17,11 @@ if (empty($_SESSION['usuario_id'])) {
 }
 
 /*
- * Verifica se o usuário é administrador.
- */
+|--------------------------------------------------------------------------
+| Verifica permissão de administrador
+|--------------------------------------------------------------------------
+*/
+
 if (
     !isset($_SESSION['perfil_acesso']) ||
     $_SESSION['perfil_acesso'] !== 'admin'
@@ -51,53 +57,66 @@ if (
 }
 
 /*
- * Gera token CSRF para as ações administrativas.
- */
+|--------------------------------------------------------------------------
+| Gera token CSRF
+|--------------------------------------------------------------------------
+*/
+
 if (empty($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(
-        random_bytes(32)
-    );
+    $_SESSION['csrf_token'] =
+        bin2hex(
+            random_bytes(32)
+        );
 }
 
 /*
- * Conexão com o banco.
- */
-require __DIR__ . '/config/conexao.php';
+|--------------------------------------------------------------------------
+| Dependências
+|--------------------------------------------------------------------------
+*/
 
-$tituloPagina = 'Área Administrativa - Mundo Pokémon';
+require_once __DIR__ . '/config/conexao.php';
+require_once __DIR__ . '/repositories/TreinadorRepository.php';
+
+/*
+|--------------------------------------------------------------------------
+| Configuração da página
+|--------------------------------------------------------------------------
+*/
+
+$tituloPagina =
+    'Área Administrativa - Mundo Pokémon';
 
 $treinadores = [];
 $erroConsulta = '';
 
+/*
+|--------------------------------------------------------------------------
+| Busca treinadores através do Repository
+|--------------------------------------------------------------------------
+*/
+
 try {
-    /*
-     * Lista os treinadores cadastrados.
-     */
-    $comando = $pdo->prepare(
-        'SELECT
-            id,
-            nome,
-            email,
-            perfil_acesso,
-            nivel,
-            regiao,
-            criado_em
-        FROM treinadores
-        ORDER BY id ASC'
-    );
+    $treinadorRepository =
+        new TreinadorRepository($pdo);
 
-    $comando->execute();
-
-    $treinadores = $comando->fetchAll(
-        PDO::FETCH_ASSOC
-    );
+    $treinadores =
+        $treinadorRepository
+            ->listarParaApi();
 
 } catch (PDOException $erro) {
+
     http_response_code(500);
 
     $erroConsulta =
         'Não foi possível carregar os treinadores.';
 }
+
+/*
+|--------------------------------------------------------------------------
+| Cabeçalho
+|--------------------------------------------------------------------------
+*/
 
 require __DIR__ . '/includes/cabecalho.php';
 
@@ -177,7 +196,9 @@ require __DIR__ . '/includes/cabecalho.php';
 
                                 <td>
                                     <?= htmlspecialchars(
-                                        $treinador['nome'],
+                                        (string) (
+                                            $treinador['nome'] ?? ''
+                                        ),
                                         ENT_QUOTES,
                                         'UTF-8'
                                     ) ?>
@@ -185,7 +206,9 @@ require __DIR__ . '/includes/cabecalho.php';
 
                                 <td>
                                     <?= htmlspecialchars(
-                                        $treinador['email'] ?? '',
+                                        (string) (
+                                            $treinador['email'] ?? ''
+                                        ),
                                         ENT_QUOTES,
                                         'UTF-8'
                                     ) ?>
@@ -193,19 +216,25 @@ require __DIR__ . '/includes/cabecalho.php';
 
                                 <td>
                                     <?= htmlspecialchars(
-                                        $treinador['perfil_acesso'],
+                                        (string) (
+                                            $treinador['perfil_acesso'] ?? ''
+                                        ),
                                         ENT_QUOTES,
                                         'UTF-8'
                                     ) ?>
                                 </td>
 
                                 <td>
-                                    <?= (int) $treinador['nivel'] ?>
+                                    <?= (int) (
+                                        $treinador['nivel'] ?? 0
+                                    ) ?>
                                 </td>
 
                                 <td>
                                     <?= htmlspecialchars(
-                                        $treinador['regiao'],
+                                        (string) (
+                                            $treinador['regiao'] ?? ''
+                                        ),
                                         ENT_QUOTES,
                                         'UTF-8'
                                     ) ?>
@@ -213,7 +242,9 @@ require __DIR__ . '/includes/cabecalho.php';
 
                                 <td>
                                     <?= htmlspecialchars(
-                                        $treinador['criado_em'],
+                                        (string) (
+                                            $treinador['criado_em'] ?? ''
+                                        ),
                                         ENT_QUOTES,
                                         'UTF-8'
                                     ) ?>
@@ -242,7 +273,7 @@ require __DIR__ . '/includes/cabecalho.php';
                                                 type="hidden"
                                                 name="csrf_token"
                                                 value="<?= htmlspecialchars(
-                                                    $_SESSION['csrf_token'],
+                                                    (string) $_SESSION['csrf_token'],
                                                     ENT_QUOTES,
                                                     'UTF-8'
                                                 ) ?>"
