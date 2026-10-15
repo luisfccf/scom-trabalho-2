@@ -5,6 +5,10 @@ declare(strict_types=1);
 session_start();
 
 require_once __DIR__ . '/config/conexao.php';
+require_once __DIR__ . '/repositories/TokenPersistenteRepository.php';
+
+$tokenRepository =
+    new TokenPersistenteRepository($pdo);
 
 /*
 |--------------------------------------------------------------------------
@@ -12,10 +16,13 @@ require_once __DIR__ . '/config/conexao.php';
 |--------------------------------------------------------------------------
 */
 
-$cookiePersistente = $_COOKIE['lembrar_login'] ?? '';
+$cookiePersistente =
+    $_COOKIE['lembrar_login'] ?? '';
 
-if (is_string($cookiePersistente) && $cookiePersistente !== '') {
-
+if (
+    is_string($cookiePersistente) &&
+    $cookiePersistente !== ''
+) {
     $partes = explode(
         ':',
         $cookiePersistente,
@@ -33,19 +40,17 @@ if (is_string($cookiePersistente) && $cookiePersistente !== '') {
             )
         ) {
             try {
-                $comando = $pdo->prepare(
-                    'DELETE FROM tokens_persistentes
-                     WHERE selector = :selector'
-                );
 
-                $comando->execute([
-                    ':selector' => $selector
-                ]);
+                $tokenRepository
+                    ->removerPorSelector(
+                        $selector
+                    );
 
             } catch (PDOException $erro) {
+
                 /*
-                 * O logout deve continuar mesmo que
-                 * a remoção do token no banco falhe.
+                 * O logout deve continuar mesmo
+                 * se a remoção do token falhar.
                  */
             }
         }
@@ -66,11 +71,20 @@ setcookie(
     'lembrar_login',
     '',
     [
-        'expires' => time() - 3600,
-        'path' => '/',
-        'secure' => $cookieSeguro,
-        'httponly' => true,
-        'samesite' => 'Lax'
+        'expires' =>
+            time() - 3600,
+
+        'path' =>
+            '/',
+
+        'secure' =>
+            $cookieSeguro,
+
+        'httponly' =>
+            true,
+
+        'samesite' =>
+            'Lax'
     ]
 );
 
@@ -90,18 +104,31 @@ $_SESSION = [];
 
 if (ini_get('session.use_cookies')) {
 
-    $parametros = session_get_cookie_params();
+    $parametros =
+        session_get_cookie_params();
 
     setcookie(
         session_name(),
         '',
         [
-            'expires' => time() - 42000,
-            'path' => $parametros['path'],
-            'domain' => $parametros['domain'],
-            'secure' => $parametros['secure'],
-            'httponly' => $parametros['httponly'],
-            'samesite' => $parametros['samesite'] ?? 'Lax'
+            'expires' =>
+                time() - 42000,
+
+            'path' =>
+                $parametros['path'],
+
+            'domain' =>
+                $parametros['domain'],
+
+            'secure' =>
+                $parametros['secure'],
+
+            'httponly' =>
+                $parametros['httponly'],
+
+            'samesite' =>
+                $parametros['samesite']
+                ?? 'Lax'
         ]
     );
 }
@@ -116,7 +143,7 @@ session_destroy();
 
 /*
 |--------------------------------------------------------------------------
-| Redireciona apenas uma vez para o login
+| Redireciona para o login
 |--------------------------------------------------------------------------
 */
 
