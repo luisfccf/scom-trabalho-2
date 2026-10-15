@@ -5,6 +5,9 @@ declare(strict_types=1);
 require_once __DIR__ . '/config/conexao.php';
 require_once __DIR__ . '/includes/logger.php';
 require_once __DIR__ . '/includes/validacoes.php';
+require_once __DIR__ . '/repositories/TreinadorRepository.php';
+
+$repositorio = new TreinadorRepository($pdo);
 
 function escapar(string $valor): string
 {
@@ -49,23 +52,30 @@ $perfilUrl = trim(
 /*
 | No HTML este campo se chama "mensagem"
 */
+
 $motivacao = trim(
     (string) ($_POST['mensagem'] ?? '')
 );
 
-$novidades = isset($_POST['novidades']) ? 1 : 0;
+$novidades =
+    isset($_POST['novidades']) ? 1 : 0;
 
 $experiencia = strtolower(
-    trim((string) ($_POST['experiencia'] ?? ''))
+    trim(
+        (string) ($_POST['experiencia'] ?? '')
+    )
 );
 
 $regiao = strtolower(
-    trim((string) ($_POST['regiao'] ?? ''))
+    trim(
+        (string) ($_POST['regiao'] ?? '')
+    )
 );
 
 /*
 | No HTML este campo se chama "data-nascimento"
 */
+
 $dataNascimento = trim(
     (string) ($_POST['data-nascimento'] ?? '')
 );
@@ -73,18 +83,23 @@ $dataNascimento = trim(
 /*
 | No HTML este campo se chama "horario"
 */
+
 $horarioPreferido = trim(
     (string) ($_POST['horario'] ?? '')
 );
 
 $corUniforme = trim(
-    (string) ($_POST['cor_uniforme'] ?? '#c51d1d')
+    (string) (
+        $_POST['cor_uniforme'] ?? '#c51d1d'
+    )
 );
 
 /*
 | No HTML este checkbox se chama "termos"
 */
-$termosAceitos = isset($_POST['termos']) ? 1 : 0;
+
+$termosAceitos =
+    isset($_POST['termos']) ? 1 : 0;
 
 /*
 |--------------------------------------------------------------------------
@@ -94,71 +109,50 @@ $termosAceitos = isset($_POST['termos']) ? 1 : 0;
 
 $erros = [];
 
-/*
-|--------------------------------------------------------------------------
-| Nome
-|--------------------------------------------------------------------------
-*/
-
 if (!validarNome($nome)) {
-    $erros[] = 'O nome deve possuir entre 2 e 80 caracteres.';
+    $erros[] =
+        'O nome deve possuir entre 2 e 80 caracteres.';
 }
-
-/*
-|--------------------------------------------------------------------------
-| Senha
-|--------------------------------------------------------------------------
-*/
 
 $tamanhoSenha = strlen($senha);
 
-if ($tamanhoSenha < 8 || $tamanhoSenha > 72) {
-    $erros[] = 'A senha deve possuir entre 8 e 72 caracteres.';
+if (
+    $tamanhoSenha < 8 ||
+    $tamanhoSenha > 72
+) {
+    $erros[] =
+        'A senha deve possuir entre 8 e 72 caracteres.';
 }
-
-/*
-|--------------------------------------------------------------------------
-| Nível
-|--------------------------------------------------------------------------
-*/
 
 if (
     $nivelRecebido === false ||
     $nivelRecebido === null ||
     !validarNivel((int) $nivelRecebido)
 ) {
-    $erros[] = 'O nível deve estar entre 1 e 100.';
+    $erros[] =
+        'O nível deve estar entre 1 e 100.';
 }
 
 $nivel = (int) $nivelRecebido;
 
-/*
-|--------------------------------------------------------------------------
-| E-mail
-|--------------------------------------------------------------------------
-*/
-
-if ($email !== '' && !validarEmail($email)) {
-    $erros[] = 'O e-mail informado é inválido.';
+if (
+    $email !== '' &&
+    !validarEmail($email)
+) {
+    $erros[] =
+        'O e-mail informado é inválido.';
 }
 
-/*
-|--------------------------------------------------------------------------
-| Novidades
-|--------------------------------------------------------------------------
-*/
-
-if ($novidades === 1 && $email === '') {
-    $erros[] = 'Informe um e-mail para receber novidades.';
+if (
+    $novidades === 1 &&
+    $email === ''
+) {
+    $erros[] =
+        'Informe um e-mail para receber novidades.';
 }
-
-/*
-|--------------------------------------------------------------------------
-| URL do perfil
-|--------------------------------------------------------------------------
-*/
 
 if ($perfilUrl !== '') {
+
     $urlValida = filter_var(
         $perfilUrl,
         FILTER_VALIDATE_URL
@@ -171,20 +165,17 @@ if ($perfilUrl !== '') {
 
     if (
         $urlValida === false ||
-        strtolower((string) $esquema) !== 'https'
+        strtolower(
+            (string) $esquema
+        ) !== 'https'
     ) {
         $erros[] =
             'A URL do perfil deve ser válida e utilizar HTTPS.';
     }
 }
 
-/*
-|--------------------------------------------------------------------------
-| Motivação
-|--------------------------------------------------------------------------
-*/
-
-$tamanhoMotivacao = mb_strlen($motivacao);
+$tamanhoMotivacao =
+    mb_strlen($motivacao);
 
 if (
     $tamanhoMotivacao < 1 ||
@@ -194,21 +185,14 @@ if (
         'A motivação deve possuir entre 1 e 500 caracteres.';
 }
 
-/*
-|--------------------------------------------------------------------------
-| Experiência
-|--------------------------------------------------------------------------
-*/
-
-if (!validarExperiencia($experiencia)) {
-    $erros[] = 'Nível de experiência inválido.';
+if (
+    !validarExperiencia(
+        $experiencia
+    )
+) {
+    $erros[] =
+        'Nível de experiência inválido.';
 }
-
-/*
-|--------------------------------------------------------------------------
-| Região
-|--------------------------------------------------------------------------
-*/
 
 $regioesPermitidas = [
     'kanto',
@@ -222,8 +206,15 @@ $regioesPermitidas = [
     'paldea'
 ];
 
-if (!in_array($regiao, $regioesPermitidas, true)) {
-    $erros[] = 'Região inválida.';
+if (
+    !in_array(
+        $regiao,
+        $regioesPermitidas,
+        true
+    )
+) {
+    $erros[] =
+        'Região inválida.';
 }
 
 /*
@@ -240,21 +231,29 @@ if (
         $dataNascimento
     )
 ) {
-    $data = DateTimeImmutable::createFromFormat(
-        '!Y-m-d',
-        $dataNascimento
-    );
+    $data =
+        DateTimeImmutable::createFromFormat(
+            '!Y-m-d',
+            $dataNascimento
+        );
 
     if (
         $data !== false &&
-        $data->format('Y-m-d') === $dataNascimento
+        $data->format('Y-m-d')
+        === $dataNascimento
     ) {
-        $hoje = new DateTimeImmutable('today');
+        $hoje =
+            new DateTimeImmutable('today');
 
         if ($data <= $hoje) {
-            $idade = $data->diff($hoje)->y;
 
-            if ($idade >= 10 && $idade <= 120) {
+            $idade =
+                $data->diff($hoje)->y;
+
+            if (
+                $idade >= 10 &&
+                $idade <= 120
+            ) {
                 $dataNascimentoValida = true;
             }
         }
@@ -278,7 +277,8 @@ if (
         $horarioPreferido
     )
 ) {
-    $erros[] = 'Horário preferido inválido.';
+    $erros[] =
+        'Horário preferido inválido.';
 }
 
 /*
@@ -293,7 +293,8 @@ if (
         $corUniforme
     )
 ) {
-    $erros[] = 'Cor do uniforme inválida.';
+    $erros[] =
+        'Cor do uniforme inválida.';
 }
 
 /*
@@ -314,9 +315,12 @@ if ($termosAceitos !== 1) {
 */
 
 if ($erros !== []) {
+
     http_response_code(422);
 
-    require __DIR__ . '/includes/cabecalho.php';
+    require __DIR__
+        . '/includes/cabecalho.php';
+
     ?>
 
     <main
@@ -329,7 +333,9 @@ if ($erros !== []) {
         >
             <div class="resultado-conteudo">
 
-                <span class="resultado-etiqueta etiqueta-erro">
+                <span
+                    class="resultado-etiqueta etiqueta-erro"
+                >
                     CADASTRO NÃO REALIZADO
                 </span>
 
@@ -342,11 +348,15 @@ if ($erros !== []) {
                 </p>
 
                 <ul class="lista-erros">
+
                     <?php foreach ($erros as $erro): ?>
+
                         <li>
                             <?= escapar($erro) ?>
                         </li>
+
                     <?php endforeach; ?>
+
                 </ul>
 
                 <a
@@ -362,7 +372,9 @@ if ($erros !== []) {
 
     <?php
 
-    require __DIR__ . '/includes/rodape.php';
+    require __DIR__
+        . '/includes/rodape.php';
+
     exit;
 }
 
@@ -378,6 +390,7 @@ $senhaHash = password_hash(
 );
 
 if ($senhaHash === false) {
+
     registrarLog(
         'ERRO_INTERNO',
         'Falha ao gerar hash da senha durante cadastro.'
@@ -385,83 +398,78 @@ if ($senhaHash === false) {
 
     http_response_code(500);
 
-    exit('Erro interno ao processar o cadastro.');
+    exit(
+        'Erro interno ao processar o cadastro.'
+    );
 }
 
 /*
 |--------------------------------------------------------------------------
-| Cadastro no banco
+| Cadastro através do Repository
 |--------------------------------------------------------------------------
 */
 
 try {
-    $sql = '
-        INSERT INTO treinadores (
-            nome,
-            senha_hash,
-            nivel,
-            email,
-            perfil_url,
-            motivacao,
-            novidades,
-            experiencia,
-            regiao,
-            data_nascimento,
-            horario_preferido,
-            cor_uniforme,
-            termos_aceitos
-        ) VALUES (
-            :nome,
-            :senha_hash,
-            :nivel,
-            :email,
-            :perfil_url,
-            :motivacao,
-            :novidades,
-            :experiencia,
-            :regiao,
-            :data_nascimento,
-            :horario_preferido,
-            :cor_uniforme,
-            :termos_aceitos
-        )
-    ';
 
-    $stmt = $pdo->prepare($sql);
+    $treinadorId =
+        $repositorio->cadastrar([
+            'nome' => $nome,
 
-    $stmt->execute([
-        ':nome' => $nome,
-        ':senha_hash' => $senhaHash,
-        ':nivel' => $nivel,
-        ':email' => $email !== ''
-            ? $email
-            : null,
-        ':perfil_url' => $perfilUrl !== ''
-            ? $perfilUrl
-            : null,
-        ':motivacao' => $motivacao,
-        ':novidades' => $novidades,
-        ':experiencia' => $experiencia,
-        ':regiao' => $regiao,
-        ':data_nascimento' => $dataNascimento,
-        ':horario_preferido' => $horarioPreferido,
-        ':cor_uniforme' => $corUniforme,
-        ':termos_aceitos' => $termosAceitos
-    ]);
+            'senha_hash' =>
+                $senhaHash,
 
-    $treinadorId = (int) $pdo->lastInsertId();
+            'nivel' =>
+                $nivel,
+
+            'email' =>
+                $email !== ''
+                    ? $email
+                    : null,
+
+            'perfil_url' =>
+                $perfilUrl !== ''
+                    ? $perfilUrl
+                    : null,
+
+            'motivacao' =>
+                $motivacao,
+
+            'novidades' =>
+                $novidades,
+
+            'experiencia' =>
+                $experiencia,
+
+            'regiao' =>
+                $regiao,
+
+            'data_nascimento' =>
+                $dataNascimento,
+
+            'horario_preferido' =>
+                $horarioPreferido,
+
+            'cor_uniforme' =>
+                $corUniforme,
+
+            'termos_aceitos' =>
+                $termosAceitos
+        ]);
 
     registrarLog(
         'CRIACAO_ENTIDADE',
         'Treinador cadastrado com sucesso.',
         [
-            'treinador_id' => $treinadorId
+            'treinador_id' =>
+                $treinadorId
         ]
     );
 
     http_response_code(201);
 
-    require __DIR__ . '/includes/cabecalho.php';
+    require __DIR__
+        . '/includes/cabecalho.php';
+
     ?>
 
     <main
@@ -472,9 +480,12 @@ try {
             class="cartao-resultado resultado-sucesso"
             aria-labelledby="titulo-resultado"
         >
+
             <div class="resultado-conteudo">
 
-                <span class="resultado-etiqueta etiqueta-sucesso">
+                <span
+                    class="resultado-etiqueta etiqueta-sucesso"
+                >
                     ✓ CADASTRO CONCLUÍDO
                 </span>
 
@@ -552,6 +563,7 @@ try {
                 </dl>
 
                 <div class="motivacao-resultado">
+
                     <h3>
                         Motivação da jornada
                     </h3>
@@ -559,6 +571,7 @@ try {
                     <p>
                         <?= escapar($motivacao) ?>
                     </p>
+
                 </div>
 
                 <div class="acoes-resultado">
@@ -578,6 +591,7 @@ try {
                     </a>
 
                 </div>
+
             </div>
 
             <figure class="resultado-ilustracao">
@@ -594,26 +608,32 @@ try {
                 </figcaption>
 
             </figure>
+
         </section>
     </main>
 
     <?php
 
-    require __DIR__ . '/includes/rodape.php';
+    require __DIR__
+        . '/includes/rodape.php';
+
     exit;
 
 } catch (PDOException $erro) {
 
     /*
     |--------------------------------------------------------------------------
-    | E-mail duplicado ou violação de constraint
+    | E-mail duplicado ou constraint
     |--------------------------------------------------------------------------
     */
 
     if ($erro->getCode() === '23000') {
+
         http_response_code(409);
 
-        require __DIR__ . '/includes/cabecalho.php';
+        require __DIR__
+            . '/includes/cabecalho.php';
+
         ?>
 
         <main
@@ -624,9 +644,12 @@ try {
                 class="cartao-resultado resultado-erro"
                 aria-labelledby="titulo-resultado"
             >
+
                 <div class="resultado-conteudo">
 
-                    <span class="resultado-etiqueta etiqueta-erro">
+                    <span
+                        class="resultado-etiqueta etiqueta-erro"
+                    >
                         CADASTRO NÃO REALIZADO
                     </span>
 
@@ -647,12 +670,15 @@ try {
                     </a>
 
                 </div>
+
             </section>
         </main>
 
         <?php
 
-        require __DIR__ . '/includes/rodape.php';
+        require __DIR__
+            . '/includes/rodape.php';
+
         exit;
     }
 
@@ -666,13 +692,16 @@ try {
         'ERRO_INTERNO',
         'Erro interno durante cadastro de treinador.',
         [
-            'codigo' => $erro->getCode()
+            'codigo' =>
+                $erro->getCode()
         ]
     );
 
     http_response_code(500);
 
-    require __DIR__ . '/includes/cabecalho.php';
+    require __DIR__
+        . '/includes/cabecalho.php';
+
     ?>
 
     <main
@@ -683,9 +712,12 @@ try {
             class="cartao-resultado resultado-erro"
             aria-labelledby="titulo-resultado"
         >
+
             <div class="resultado-conteudo">
 
-                <span class="resultado-etiqueta etiqueta-erro">
+                <span
+                    class="resultado-etiqueta etiqueta-erro"
+                >
                     ERRO INTERNO
                 </span>
 
@@ -706,11 +738,14 @@ try {
                 </a>
 
             </div>
+
         </section>
     </main>
 
     <?php
 
-    require __DIR__ . '/includes/rodape.php';
+    require __DIR__
+        . '/includes/rodape.php';
+
     exit;
 }

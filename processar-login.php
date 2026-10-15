@@ -6,6 +6,20 @@ session_start();
 
 require_once __DIR__ . '/config/conexao.php';
 require_once __DIR__ . '/includes/logger.php';
+require_once __DIR__ . '/repositories/TreinadorRepository.php';
+require_once __DIR__ . '/repositories/TokenPersistenteRepository.php';
+
+$treinadorRepository =
+    new TreinadorRepository($pdo);
+
+$tokenRepository =
+    new TokenPersistenteRepository($pdo);
+
+/*
+|--------------------------------------------------------------------------
+| Apenas POST
+|--------------------------------------------------------------------------
+*/
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -19,12 +33,16 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 |--------------------------------------------------------------------------
 */
 
-$csrfRecebido = $_POST['csrf_token'] ?? '';
+$csrfRecebido =
+    $_POST['csrf_token'] ?? '';
 
 if (
     empty($_SESSION['csrf_token']) ||
     !is_string($csrfRecebido) ||
-    !hash_equals($_SESSION['csrf_token'], $csrfRecebido)
+    !hash_equals(
+        $_SESSION['csrf_token'],
+        $csrfRecebido
+    )
 ) {
     http_response_code(403);
 
@@ -52,7 +70,8 @@ $email = filter_input(
     FILTER_VALIDATE_EMAIL
 );
 
-$senha = $_POST['senha'] ?? '';
+$senha =
+    $_POST['senha'] ?? '';
 
 $manterConectado =
     isset($_POST['manter_conectado']) &&
@@ -85,33 +104,24 @@ if (
     exit;
 }
 
+/*
+|--------------------------------------------------------------------------
+| Autenticação
+|--------------------------------------------------------------------------
+*/
+
 try {
 
     /*
     |--------------------------------------------------------------------------
-    | Busca usuário
+    | Busca usuário através do Repository
     |--------------------------------------------------------------------------
     */
 
-    $comando = $pdo->prepare(
-        'SELECT
-            id,
-            nome,
-            email,
-            senha_hash,
-            perfil_acesso
-        FROM treinadores
-        WHERE email = :email
-        LIMIT 1'
-    );
-
-    $comando->execute([
-        ':email' => $email
-    ]);
-
-    $treinador = $comando->fetch(
-        PDO::FETCH_ASSOC
-    );
+    $treinador =
+        $treinadorRepository->buscarPorEmail(
+            $email
+        );
 
     /*
     |--------------------------------------------------------------------------
@@ -120,7 +130,7 @@ try {
     */
 
     if (
-        !$treinador ||
+        $treinador === null ||
         !password_verify(
             $senha,
             $treinador['senha_hash']
@@ -170,7 +180,9 @@ try {
         $treinador['perfil_acesso'];
 
     $_SESSION['csrf_token'] =
-        bin2hex(random_bytes(32));
+        bin2hex(
+            random_bytes(32)
+        );
 
     /*
     |--------------------------------------------------------------------------
@@ -178,12 +190,7 @@ try {
     |--------------------------------------------------------------------------
     */
 
-    $limparExpirados = $pdo->prepare(
-        'DELETE FROM tokens_persistentes
-         WHERE expira_em < NOW()'
-    );
-
-    $limparExpirados->execute();
+    $tokenRepository->limparExpirados();
 
     /*
     |--------------------------------------------------------------------------
@@ -197,46 +204,58 @@ try {
          * Selector público usado para localizar
          * rapidamente o token no banco.
          */
-        $selector = bin2hex(
-            random_bytes(12)
-        );
+
+        $selector =
+            bin2hex(
+                random_bytes(12)
+            );
 
         /*
          * Token secreto.
          */
-        $token = bin2hex(
-            random_bytes(32)
-        );
+
+        $token =
+            bin2hex(
+                random_bytes(32)
+            );
 
         /*
          * No banco é armazenado somente o hash.
          */
-        $tokenHash = hash(
-            'sha256',
-            $token
-        );
+
+        $tokenHash =
+            hash(
+                'sha256',
+                $token
+            );
 
         /*
          * Validade de 30 dias.
          */
+
         $expiraTimestamp =
-            time() + (60 * 60 * 24 * 30);
+            time() +
+            (60 * 60 * 24 * 30);
 
-        $timezone = new DateTimeZone(
-            'America/Sao_Paulo'
-        );
+        $timezone =
+            new DateTimeZone(
+                'America/Sao_Paulo'
+            );
 
-        $expiracao = new DateTimeImmutable(
-            '@' . $expiraTimestamp
-        );
+        $expiracao =
+            new DateTimeImmutable(
+                '@' . $expiraTimestamp
+            );
 
-        $expiracao = $expiracao->setTimezone(
-            $timezone
-        );
+        $expiracao =
+            $expiracao->setTimezone(
+                $timezone
+            );
 
-        $expiraBanco = $expiracao->format(
-            'Y-m-d H:i:s'
-        );
+        $expiraBanco =
+            $expiracao->format(
+                'Y-m-d H:i:s'
+            );
 
         /*
         |--------------------------------------------------------------------------
@@ -244,15 +263,10 @@ try {
         |--------------------------------------------------------------------------
         */
 
-        $removerTokens = $pdo->prepare(
-            'DELETE FROM tokens_persistentes
-             WHERE treinador_id = :treinador_id'
-        );
-
-        $removerTokens->execute([
-            ':treinador_id' =>
+        $tokenRepository
+            ->removerPorTreinadorId(
                 (int) $treinador['id']
-        ]);
+            );
 
         /*
         |--------------------------------------------------------------------------
@@ -260,33 +274,12 @@ try {
         |--------------------------------------------------------------------------
         */
 
-        $salvarToken = $pdo->prepare(
-            'INSERT INTO tokens_persistentes (
-                treinador_id,
-                selector,
-                token_hash,
-                expira_em
-            ) VALUES (
-                :treinador_id,
-                :selector,
-                :token_hash,
-                :expira_em
-            )'
+        $tokenRepository->salvar(
+            (int) $treinador['id'],
+            $selector,
+            $tokenHash,
+            $expiraBanco
         );
-
-        $salvarToken->execute([
-            ':treinador_id' =>
-                (int) $treinador['id'],
-
-            ':selector' =>
-                $selector,
-
-            ':token_hash' =>
-                $tokenHash,
-
-            ':expira_em' =>
-                $expiraBanco
-        ]);
 
         /*
         |--------------------------------------------------------------------------
@@ -302,11 +295,20 @@ try {
             'lembrar_login',
             $selector . ':' . $token,
             [
-                'expires' => $expiraTimestamp,
-                'path' => '/',
-                'secure' => $cookieSeguro,
-                'httponly' => true,
-                'samesite' => 'Lax'
+                'expires' =>
+                    $expiraTimestamp,
+
+                'path' =>
+                    '/',
+
+                'secure' =>
+                    $cookieSeguro,
+
+                'httponly' =>
+                    true,
+
+                'samesite' =>
+                    'Lax'
             ]
         );
 
@@ -314,24 +316,29 @@ try {
 
         /*
         |--------------------------------------------------------------------------
-        | Se não marcou "Manter-me conectado",
-        | remove eventual cookie persistente antigo
+        | Remove eventual cookie persistente antigo
         |--------------------------------------------------------------------------
         */
 
-        if (isset($_COOKIE['lembrar_login'])) {
-
+        if (
+            isset(
+                $_COOKIE['lembrar_login']
+            )
+        ) {
             $cookieAtual =
-                (string) $_COOKIE['lembrar_login'];
+                (string)
+                $_COOKIE['lembrar_login'];
 
-            $partes = explode(
-                ':',
-                $cookieAtual,
-                2
-            );
+            $partes =
+                explode(
+                    ':',
+                    $cookieAtual,
+                    2
+                );
 
-            if (count($partes) === 2) {
-
+            if (
+                count($partes) === 2
+            ) {
                 $selectorAnterior =
                     $partes[0];
 
@@ -341,15 +348,10 @@ try {
                         $selectorAnterior
                     )
                 ) {
-                    $removerToken = $pdo->prepare(
-                        'DELETE FROM tokens_persistentes
-                         WHERE selector = :selector'
-                    );
-
-                    $removerToken->execute([
-                        ':selector' =>
+                    $tokenRepository
+                        ->removerPorSelector(
                             $selectorAnterior
-                    ]);
+                        );
                 }
             }
 
@@ -361,11 +363,20 @@ try {
                 'lembrar_login',
                 '',
                 [
-                    'expires' => time() - 3600,
-                    'path' => '/',
-                    'secure' => $cookieSeguro,
-                    'httponly' => true,
-                    'samesite' => 'Lax'
+                    'expires' =>
+                        time() - 3600,
+
+                    'path' =>
+                        '/',
+
+                    'secure' =>
+                        $cookieSeguro,
+
+                    'httponly' =>
+                        true,
+
+                    'samesite' =>
+                        'Lax'
                 ]
             );
         }
@@ -392,7 +403,10 @@ try {
         ]
     );
 
-    header('Location: area-treinador.php');
+    header(
+        'Location: area-treinador.php'
+    );
+
     exit;
 
 } catch (PDOException $erro) {
@@ -403,7 +417,8 @@ try {
         'ERRO_INTERNO',
         'Erro interno durante autenticação.',
         [
-            'codigo' => $erro->getCode()
+            'codigo' =>
+                $erro->getCode()
         ]
     );
 
