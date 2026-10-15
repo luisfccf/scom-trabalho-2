@@ -1,221 +1,514 @@
-# Mundo Pokémon — Interface Web Interativa
+# Trabalho Individual II - SCOM
 
-Projeto acadêmico individual desenvolvido para a disciplina SCOM, com o objetivo de criar uma interface web moderna, semântica, responsiva e acessível utilizando HTML5, CSS3 e JavaScript.
+Projeto desenvolvido para a disciplina **SCOM**, dando continuidade à aplicação web Mundo Pokémon.
 
-## Objetivo
-
-Apresentar informações sobre o universo Pokémon por meio de uma interface interativa que reúne história da franquia, Pokémon iniciais, tipos elementares, vantagens em batalha e formulário de cadastro.
-
-## Público-alvo
-
-Estudantes, fãs da franquia Pokémon e usuários interessados em conhecer as características dos Pokémon e as relações entre seus diferentes tipos.
-
-## Funcionalidades
-
-- Navegação entre as principais seções da página.
-- Carrossel interativo com Pokémon iniciais de diferentes regiões.
-- Controles acessíveis para avançar, retornar e pausar o carrossel.
-- Seção sobre a história do universo Pokémon.
-- Galeria com Pokémon de diferentes gerações.
-- Classificação dos Pokémon iniciais por região.
-- Guia interativo com os 18 tipos Pokémon.
-- Apresentação das vantagens e fraquezas de cada tipo.
-- Exemplos visuais de Pokémon representantes.
-- Página adicional de Pokédex.
-- Formulário de cadastro de treinadores.
-- Validação dinâmica de informações do formulário.
-- Link para retorno ao topo da página.
-
-## Tecnologias utilizadas
-
-- HTML5.
-- CSS3.
-- JavaScript.
-- Git e GitHub.
-- Google Lighthouse.
-- W3C Nu HTML Checker.
-- W3C CSS Validator.
-
-O projeto foi desenvolvido sem frameworks, bibliotecas externas obrigatórias ou processos de compilação.
-
-## Como executar localmente
-
-### Opção 1: abrir diretamente no navegador
-
-1. Baixe ou clone o repositório.
-2. Abra a pasta do projeto.
-3. Clique duas vezes no arquivo `index.html`.
-4. Navegue normalmente pela interface.
-
-Não é necessário instalar dependências ou iniciar um servidor.
-
-### Opção 2: clonar o repositório
-
-Execute:
-
-```bash
-git clone https://github.com/luisfccf/scom-trabalho-1.git
-```
-
-Acesse a pasta:
-
-```bash
-cd scom-trabalho-1
-```
-
-Abra o arquivo:
-
-```text
-index.html
-```
-
-### Opção 3: utilizar o Live Server
-
-1. Abra a pasta do projeto no Visual Studio Code.
-2. Instale a extensão Live Server, caso desejado.
-3. Clique com o botão direito em `index.html`.
-4. Selecione a opção **Open with Live Server**.
-
-O Live Server é opcional e não é necessário para executar o projeto.
-
-## Estrutura do projeto
-
-```text
-scom-trabalho-1/
-├── assets/
-├── css/
-│   └── styles.css
-├── evidencias/
-├── js/
-│   └── main.js
-├── Prints e Versões/
-├── index.html
-├── pokedex.html
-└── README.md
-```
-
-## Responsividade
-
-A interface foi desenvolvida para funcionar em diferentes tamanhos de tela.
-
-Os principais formatos testados foram:
-
-- Mobile: 390 × 844.
-- Tablet: 768 × 1024.
-- Desktop: 1440 × 900.
-
-O layout utiliza CSS Grid, Flexbox e media queries para reorganizar menus, formulários, galerias e cartões.
-
-## Acessibilidade
-
-O projeto adota práticas alinhadas à WCAG 2.2 nível AA:
-
-- Estrutura semântica com `header`, `nav`, `main`, `section`, `article`, `aside`, `footer`, `figure` e `figcaption`.
-- Hierarquia lógica de títulos.
-- Navegação por teclado.
-- Foco visível em elementos interativos.
-- Textos alternativos nas imagens.
-- Associação entre `label` e campos do formulário.
-- Uso de atributos ARIA quando necessário.
-- Controles acessíveis no carrossel.
-- Suporte à preferência de movimento reduzido.
-- Contraste adequado entre texto e fundo.
-
-## Formulário
-
-O formulário de cadastro inclui diferentes tipos de campos:
-
-- Texto.
-- Senha.
-- Número.
-- E-mail.
-- URL.
-- Área de texto.
-- Checkbox.
-- Radio.
-- Select.
-- Data.
-- Horário.
-- Cor.
-
-Entre as validações implementadas estão:
-
-- E-mail obrigatório quando o usuário solicita novidades.
-- Seleção exclusiva do nível de experiência.
-- Validação de idade entre 10 e 120 anos.
-- Bloqueio de datas de nascimento inválidas.
-- Limite de 500 caracteres no campo de comentários.
-- Impedimento do redimensionamento manual da área de texto.
-
-## Compatibilidade
-
-O projeto foi testado nos seguintes navegadores:
-
-- Google Chrome.
-- Mozilla Firefox.
-- Microsoft Edge.
-
-As capturas e versões dos navegadores utilizados encontram-se nas pastas de evidências do projeto.
-
-## Validação de código
-
-Os seguintes arquivos foram validados:
-
-- `index.html`: aprovado no W3C Nu HTML Checker.
-- `pokedex.html`: aprovado no W3C Nu HTML Checker.
-- `css/styles.css`: aprovado no W3C CSS Validator.
-
-As evidências estão disponíveis em:
-
-```text
-evidencias/w3c-index-html.png
-evidencias/w3c-pokedex-html.png
-evidencias/w3c-css.png
-```
-
-## Desempenho
-
-O projeto foi avaliado com o Google Lighthouse nas categorias:
-
-- Performance.
-- Acessibilidade.
-- Boas práticas.
-- SEO.
-
-As capturas das auditorias estão disponíveis na pasta de evidências.
-
-Uma nova auditoria deverá ser executada após a conclusão de todas as alterações da interface.
-
-## Uso de inteligência artificial
-
-A ferramenta ChatGPT, da OpenAI, foi utilizada como apoio durante o desenvolvimento para:
-
-- Esclarecimento de dúvidas sobre HTML, CSS, JavaScript e Git.
-- Sugestão de estruturas semânticas.
-- Organização de layouts responsivos.
-- Implementação e revisão de recursos de acessibilidade.
-- Apoio na criação do carrossel e de seus controles.
-- Apoio na implementação das validações do formulário.
-- Sugestão de melhorias visuais para a interface.
-- Auxílio na interpretação de mensagens dos validadores W3C.
-- Apoio na organização da documentação.
-
-As sugestões foram revisadas, adaptadas e testadas pelo estudante antes de sua incorporação ao projeto.
-
-O detalhamento das finalidades, trechos produzidos, alterações realizadas e avaliação crítica será apresentado no relatório técnico.
-
-## Fontes de imagens e informações
-
-As imagens dos Pokémon são carregadas por meio dos recursos disponibilizados pelo projeto PokéAPI.
-
-Pokémon e os personagens associados pertencem aos seus respectivos detentores de direitos. Este projeto possui finalidade exclusivamente acadêmica e não comercial.
-
-A execução da interface pode ser realizada localmente. Entretanto, o carregamento das imagens externas e do vídeo depende de conexão com a internet.
-
-## Repositório
-
-https://github.com/luisfccf/scom-trabalho-1
+Nesta segunda etapa, o foco do projeto está no desenvolvimento do backend, persistência de dados, autenticação, controle de acesso, segurança, API e organização da arquitetura da aplicação.
 
 ## Autor
 
-Luís Felipe Cunha Canno Ferreira.
+**Luís Felipe Cunha Canno Ferreira**
+
+## Objetivo
+
+O objetivo do Trabalho Individual II é transformar a aplicação desenvolvida anteriormente em um sistema web com backend funcional.
+
+A aplicação permite cadastrar e gerenciar treinadores, realizar autenticação de usuários, controlar diferentes perfis de acesso e disponibilizar operações através de uma API.
+
+## Tecnologias utilizadas
+
+- PHP
+- MySQL
+- PDO
+- HTML5
+- CSS3
+- JavaScript
+- XAMPP
+- Git
+- GitHub
+
+O backend foi desenvolvido em PHP sem utilização de framework.
+
+## Principais funcionalidades
+
+- Cadastro de treinadores.
+- Persistência das informações em MySQL.
+- Login de usuários.
+- Senhas armazenadas utilizando hash.
+- Sessões PHP.
+- Opção "Manter-me conectado".
+- Logout.
+- Área autenticada para treinadores.
+- Área administrativa.
+- Perfis de acesso `treinador` e `admin`.
+- Listagem de treinadores.
+- Edição de treinadores.
+- Exclusão de treinadores.
+- Validação de dados no backend.
+- Proteção contra CSRF.
+- Consultas preparadas com PDO.
+- Escape de conteúdo exibido em HTML.
+- API com operações CRUD.
+- Logs da aplicação.
+- Testes automatizados.
+- Configuração através de `.env`.
+- Separação da camada de acesso aos dados.
+
+## Arquitetura
+
+O projeto foi organizado buscando separar as responsabilidades da aplicação.
+
+Fluxo simplificado:
+
+```text
+Interface
+    ↓
+Lógica da aplicação
+    ↓
+Repositories
+    ↓
+PDO
+    ↓
+MySQL
+```
+
+As páginas e arquivos responsáveis pelo processamento das requisições não executam consultas SQL diretamente.
+
+O acesso ao banco está concentrado na pasta:
+
+```text
+repositories/
+```
+
+Os principais repositories são:
+
+```text
+repositories/TreinadorRepository.php
+repositories/TokenPersistenteRepository.php
+```
+
+Uma descrição mais detalhada está disponível em:
+
+```text
+docs/ARQUITETURA.md
+```
+
+## Estrutura principal
+
+```text
+scom-trabalho-2/
+│
+├── api/
+│   └── treinadores.php
+│
+├── assets/
+│
+├── config/
+│   └── conexao.php
+│
+├── css/
+│   └── styles.css
+│
+├── database/
+│   └── banco.sql
+│
+├── docs/
+│   ├── API.md
+│   └── ARQUITETURA.md
+│
+├── evidencias/
+│
+├── includes/
+│   ├── autenticacao-persistente.php
+│   ├── cabecalho.php
+│   ├── logger.php
+│   ├── rodape.php
+│   └── validacoes.php
+│
+├── repositories/
+│   ├── TokenPersistenteRepository.php
+│   └── TreinadorRepository.php
+│
+├── tests/
+│   ├── teste-erro-interno.php
+│   └── testes-validacoes.php
+│
+├── area-admin.php
+├── area-treinador.php
+├── editar-treinador.php
+├── login.php
+├── logout.php
+├── processar-cadastro.php
+├── processar-edicao.php
+├── processar-exclusao.php
+├── processar-login.php
+├── .env.example
+├── .gitignore
+└── README.md
+```
+
+## Como executar
+
+### 1. Requisitos
+
+É necessário possuir:
+
+- Apache
+- PHP
+- MySQL
+
+Durante o desenvolvimento foi utilizado o **XAMPP**.
+
+### 2. Clonar o repositório
+
+Dentro da pasta desejada:
+
+```bash
+git clone https://github.com/luisfccf/scom-trabalho-2.git
+```
+
+### 3. Configurar o banco
+
+Inicie no XAMPP:
+
+```text
+Apache
+MySQL
+```
+
+Acesse:
+
+```text
+http://localhost/phpmyadmin/
+```
+
+Utilize o script:
+
+```text
+database/banco.sql
+```
+
+para criar a estrutura necessária.
+
+O banco utilizado pela aplicação é:
+
+```text
+pokemon_scom
+```
+
+## Configuração do `.env`
+
+O projeto utiliza variáveis de ambiente para os dados de conexão com o banco.
+
+Existe um arquivo de exemplo:
+
+```text
+.env.example
+```
+
+Crie uma cópia chamada:
+
+```text
+.env
+```
+
+No PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Exemplo:
+
+```env
+DB_HOST=localhost
+DB_NAME=pokemon_scom
+DB_USER=root
+DB_PASS=
+```
+
+O arquivo `.env` não é enviado ao GitHub.
+
+## Executando no XAMPP
+
+Neste ambiente de desenvolvimento, o projeto está localizado em:
+
+```text
+C:\xampp\htdocs\T2-SCOM\scom-trabalho-2
+```
+
+Com Apache e MySQL iniciados, a aplicação pode ser acessada em:
+
+```text
+http://localhost/T2-SCOM/scom-trabalho-2/
+```
+
+## Banco de dados
+
+A aplicação utiliza MySQL para persistência.
+
+As principais tabelas são:
+
+```text
+treinadores
+tokens_persistentes
+```
+
+A tabela `treinadores` armazena os usuários e suas informações.
+
+A tabela `tokens_persistentes` é utilizada pela funcionalidade:
+
+```text
+Manter-me conectado
+```
+
+O banco utiliza recursos como:
+
+- chave primária;
+- chave estrangeira;
+- `UNIQUE`;
+- `NOT NULL`;
+- restrições de domínio.
+
+O script SQL está disponível em:
+
+```text
+database/banco.sql
+```
+
+## Autenticação
+
+O sistema possui autenticação através de e-mail e senha.
+
+As senhas são protegidas utilizando:
+
+```php
+password_hash()
+password_verify()
+```
+
+Após o login correto, a sessão é regenerada utilizando:
+
+```php
+session_regenerate_id(true);
+```
+
+## Login persistente
+
+O usuário pode selecionar:
+
+```text
+Manter-me conectado
+```
+
+Nesse caso, um token aleatório é criado.
+
+O banco armazena somente o hash desse token.
+
+As operações relacionadas ao login persistente estão concentradas em:
+
+```text
+repositories/TokenPersistenteRepository.php
+```
+
+O cookie utiliza mecanismos como:
+
+```text
+HttpOnly
+SameSite=Lax
+```
+
+## Controle de acesso
+
+Existem dois perfis:
+
+```text
+treinador
+admin
+```
+
+### Treinador
+
+Possui acesso à área autenticada do sistema.
+
+### Administrador
+
+Além da área autenticada, pode acessar a área administrativa e gerenciar os treinadores.
+
+O sistema também impede o acesso direto às páginas administrativas por usuários sem a permissão adequada.
+
+## API
+
+A API está disponível em:
+
+```text
+api/treinadores.php
+```
+
+Métodos implementados:
+
+```text
+GET
+POST
+PUT
+DELETE
+```
+
+Exemplos:
+
+```text
+GET /api/treinadores.php
+
+GET /api/treinadores.php?id=9
+
+POST /api/treinadores.php
+
+PUT /api/treinadores.php?id=9
+
+DELETE /api/treinadores.php?id=9
+```
+
+As operações que alteram dados utilizam proteção CSRF através do cabeçalho:
+
+```text
+X-CSRF-Token
+```
+
+A documentação dos endpoints está disponível em:
+
+```text
+docs/API.md
+```
+
+## Segurança
+
+Foram implementadas medidas de segurança no backend, incluindo:
+
+- prepared statements utilizando PDO;
+- proteção contra SQL Injection;
+- proteção CSRF;
+- validação de dados no servidor;
+- escape de conteúdo HTML;
+- hash seguro de senhas;
+- controle de sessão;
+- regeneração do ID da sessão;
+- controle de acesso por perfil;
+- proteção de rotas administrativas;
+- tokens persistentes armazenados através de hash;
+- mensagens de erro sem exposição de detalhes internos.
+
+Também foram realizados testes envolvendo:
+
+```text
+Acesso sem autenticação
+Acesso sem permissão
+SQL Injection
+XSS
+CSRF
+```
+
+## Validações
+
+As funções compartilhadas de validação estão em:
+
+```text
+includes/validacoes.php
+```
+
+Entre as informações verificadas estão:
+
+- nome;
+- e-mail;
+- nível;
+- perfil de acesso;
+- experiência.
+
+## Testes automatizados
+
+Os testes automatizados de validação estão em:
+
+```text
+tests/testes-validacoes.php
+```
+
+Para executar:
+
+```powershell
+C:\xampp\php\php.exe .\tests\testes-validacoes.php
+```
+
+Os testes possuem casos válidos e inválidos.
+
+## Logs
+
+O sistema possui registro de eventos através de:
+
+```text
+includes/logger.php
+```
+
+O arquivo de log utilizado localmente é:
+
+```text
+logs/app.log
+```
+
+Entre os eventos registrados estão:
+
+```text
+LOGIN_SUCESSO
+FALHA_AUTENTICACAO
+CRIACAO_ENTIDADE
+ERRO_INTERNO
+```
+
+## Documentação
+
+A documentação adicional está disponível na pasta:
+
+```text
+docs/
+```
+
+Arquivos principais:
+
+```text
+docs/API.md
+docs/ARQUITETURA.md
+```
+
+## Git e GitHub
+
+O projeto utiliza Git para controle de versão.
+
+As diferentes funcionalidades foram desenvolvidas e registradas através de branches e commits ao longo do desenvolvimento.
+
+Repositório:
+
+```text
+https://github.com/luisfccf/scom-trabalho-2
+```
+
+## Uso de Inteligência Artificial
+
+A ferramenta ChatGPT, da OpenAI, foi utilizada como apoio durante o desenvolvimento do Trabalho Individual II.
+
+O uso envolveu principalmente:
+
+- esclarecimento de dúvidas;
+- apoio em PHP e MySQL;
+- auxílio na implementação da API;
+- autenticação e controle de acesso;
+- mecanismos de segurança;
+- testes;
+- organização da arquitetura;
+- resolução de erros;
+- Git e GitHub;
+- apoio na documentação.
+
+As sugestões foram revisadas, adaptadas e testadas pelo estudante antes de serem incorporadas ao projeto.
+
+O uso de inteligência artificial também será declarado no relatório técnico da atividade.
+
+## Autor
+
+Luís Felipe Cunha Canno Ferreira
