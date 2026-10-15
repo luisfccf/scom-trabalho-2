@@ -65,6 +65,116 @@ final class TreinadorRepository
 
     /*
     |--------------------------------------------------------------------------
+    | Verifica se um e-mail já existe
+    |--------------------------------------------------------------------------
+    */
+
+    public function existeEmail(
+        string $email
+    ): bool {
+        $consulta = $this->pdo->prepare(
+            'SELECT id
+             FROM treinadores
+             WHERE email = :email
+             LIMIT 1'
+        );
+
+        $consulta->execute([
+            ':email' => $email
+        ]);
+
+        return (bool) $consulta->fetch();
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Verifica se e-mail pertence a outro treinador
+    |--------------------------------------------------------------------------
+    */
+
+    public function existeEmailParaOutroTreinador(
+        string $email,
+        int $id
+    ): bool {
+        $consulta = $this->pdo->prepare(
+            'SELECT id
+             FROM treinadores
+             WHERE email = :email
+               AND id <> :id
+             LIMIT 1'
+        );
+
+        $consulta->execute([
+            ':email' => $email,
+            ':id' => $id
+        ]);
+
+        return (bool) $consulta->fetch();
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Lista treinadores para a API
+    |--------------------------------------------------------------------------
+    */
+
+    public function listarParaApi(): array
+    {
+        $consulta = $this->pdo->query(
+            'SELECT
+                id,
+                nome,
+                email,
+                perfil_acesso,
+                nivel,
+                regiao,
+                experiencia,
+                criado_em
+             FROM treinadores
+             ORDER BY id ASC'
+        );
+
+        return $consulta->fetchAll();
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Busca detalhes de um treinador para a API
+    |--------------------------------------------------------------------------
+    */
+
+    public function buscarDetalhesParaApi(
+        int $id
+    ): ?array {
+        $consulta = $this->pdo->prepare(
+            'SELECT
+                id,
+                nome,
+                email,
+                perfil_acesso,
+                nivel,
+                regiao,
+                experiencia,
+                data_nascimento,
+                horario_preferido,
+                motivacao,
+                criado_em
+             FROM treinadores
+             WHERE id = :id
+             LIMIT 1'
+        );
+
+        $consulta->execute([
+            ':id' => $id
+        ]);
+
+        $treinador = $consulta->fetch();
+
+        return $treinador ?: null;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
     | Cadastra treinador
     |--------------------------------------------------------------------------
     */
@@ -174,23 +284,56 @@ final class TreinadorRepository
         );
 
         $consulta->execute([
-            ':nome' =>
-                $nome,
+            ':nome' => $nome,
+            ':email' => $email,
+            ':nivel' => $nivel,
+            ':regiao' => $regiao,
+            ':perfil_acesso' => $perfilAcesso,
+            ':id' => $id
+        ]);
+    }
 
-            ':email' =>
-                $email,
+    /*
+    |--------------------------------------------------------------------------
+    | Atualiza dados através da API
+    |--------------------------------------------------------------------------
+    */
 
-            ':nivel' =>
-                $nivel,
+    public function atualizarDadosApi(
+        int $id,
+        string $nome,
+        string $email,
+        int $nivel,
+        string $regiao,
+        string $experiencia,
+        string $dataNascimento,
+        string $horarioPreferido,
+        string $motivacao
+    ): void {
+        $consulta = $this->pdo->prepare(
+            'UPDATE treinadores
+             SET
+                nome = :nome,
+                email = :email,
+                nivel = :nivel,
+                regiao = :regiao,
+                experiencia = :experiencia,
+                data_nascimento = :data_nascimento,
+                horario_preferido = :horario_preferido,
+                motivacao = :motivacao
+             WHERE id = :id'
+        );
 
-            ':regiao' =>
-                $regiao,
-
-            ':perfil_acesso' =>
-                $perfilAcesso,
-
-            ':id' =>
-                $id
+        $consulta->execute([
+            ':nome' => $nome,
+            ':email' => $email,
+            ':nivel' => $nivel,
+            ':regiao' => $regiao,
+            ':experiencia' => $experiencia,
+            ':data_nascimento' => $dataNascimento,
+            ':horario_preferido' => $horarioPreferido,
+            ':motivacao' => $motivacao,
+            ':id' => $id
         ]);
     }
 
