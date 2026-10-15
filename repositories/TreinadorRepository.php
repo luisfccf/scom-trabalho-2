@@ -35,12 +35,43 @@ final class TreinadorRepository
 
     /*
     |--------------------------------------------------------------------------
+    | Busca treinador por e-mail
+    |--------------------------------------------------------------------------
+    */
+
+    public function buscarPorEmail(
+        string $email
+    ): ?array {
+        $consulta = $this->pdo->prepare(
+            'SELECT
+                id,
+                nome,
+                email,
+                senha_hash,
+                perfil_acesso
+             FROM treinadores
+             WHERE email = :email
+             LIMIT 1'
+        );
+
+        $consulta->execute([
+            ':email' => $email
+        ]);
+
+        $treinador = $consulta->fetch();
+
+        return $treinador ?: null;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
     | Cadastra treinador
     |--------------------------------------------------------------------------
     */
 
-    public function cadastrar(array $dados): int
-    {
+    public function cadastrar(
+        array $dados
+    ): int {
         $consulta = $this->pdo->prepare(
             'INSERT INTO treinadores (
                 nome,
@@ -74,19 +105,44 @@ final class TreinadorRepository
         );
 
         $consulta->execute([
-            ':nome' => $dados['nome'],
-            ':senha_hash' => $dados['senha_hash'],
-            ':nivel' => $dados['nivel'],
-            ':email' => $dados['email'],
-            ':perfil_url' => $dados['perfil_url'],
-            ':motivacao' => $dados['motivacao'],
-            ':novidades' => $dados['novidades'],
-            ':experiencia' => $dados['experiencia'],
-            ':regiao' => $dados['regiao'],
-            ':data_nascimento' => $dados['data_nascimento'],
-            ':horario_preferido' => $dados['horario_preferido'],
-            ':cor_uniforme' => $dados['cor_uniforme'],
-            ':termos_aceitos' => $dados['termos_aceitos']
+            ':nome' =>
+                $dados['nome'],
+
+            ':senha_hash' =>
+                $dados['senha_hash'],
+
+            ':nivel' =>
+                $dados['nivel'],
+
+            ':email' =>
+                $dados['email'],
+
+            ':perfil_url' =>
+                $dados['perfil_url'],
+
+            ':motivacao' =>
+                $dados['motivacao'],
+
+            ':novidades' =>
+                $dados['novidades'],
+
+            ':experiencia' =>
+                $dados['experiencia'],
+
+            ':regiao' =>
+                $dados['regiao'],
+
+            ':data_nascimento' =>
+                $dados['data_nascimento'],
+
+            ':horario_preferido' =>
+                $dados['horario_preferido'],
+
+            ':cor_uniforme' =>
+                $dados['cor_uniforme'],
+
+            ':termos_aceitos' =>
+                $dados['termos_aceitos']
         ]);
 
         return (int) $this->pdo->lastInsertId();
@@ -118,12 +174,23 @@ final class TreinadorRepository
         );
 
         $consulta->execute([
-            ':nome' => $nome,
-            ':email' => $email,
-            ':nivel' => $nivel,
-            ':regiao' => $regiao,
-            ':perfil_acesso' => $perfilAcesso,
-            ':id' => $id
+            ':nome' =>
+                $nome,
+
+            ':email' =>
+                $email,
+
+            ':nivel' =>
+                $nivel,
+
+            ':regiao' =>
+                $regiao,
+
+            ':perfil_acesso' =>
+                $perfilAcesso,
+
+            ':id' =>
+                $id
         ]);
     }
 
@@ -133,8 +200,9 @@ final class TreinadorRepository
     |--------------------------------------------------------------------------
     */
 
-    public function excluirPorId(int $id): void
-    {
+    public function excluirPorId(
+        int $id
+    ): void {
         $comando = $this->pdo->prepare(
             'DELETE FROM treinadores
              WHERE id = :id'
